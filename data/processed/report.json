@@ -1,0 +1,180 @@
+{
+  "laws": {
+    "AufenthG": {
+      "snapshot": "2026-10-08",
+      "repealed": 2,
+      "skipped_enbez": [],
+      "duplicate_absatz": [],
+      "repealed_absaetze": 8,
+      "chunks": 916,
+      "sections": 199
+    },
+    "BeschV": {
+      "snapshot": "2026-10-08",
+      "repealed": 3,
+      "skipped_enbez": [],
+      "duplicate_absatz": [],
+      "repealed_absaetze": 0,
+      "chunks": 88,
+      "sections": 45
+    },
+    "AsylG": {
+      "snapshot": "2026-10-09",
+      "repealed": 14,
+      "skipped_enbez": [],
+      "duplicate_absatz": [
+        "AsylG-31-3"
+      ],
+      "repealed_absaetze": 2,
+      "chunks": 374,
+      "sections": 114
+    }
+  },
+  "cross_refs": {
+    "external": 374,
+    "ok": 2474,
+    "unresolved": 28
+  },
+  "unresolved": [
+    {
+      "chunk": "AufenthG-2-14",
+      "raw": "§ 62d",
+      "target": "AufenthG § 62d Abs. None"
+    },
+    {
+      "chunk": "AufenthG-73-1a",
+      "raw": "Absatz 8a oder 8b",
+      "target": "AufenthG § 73 Abs. 8a"
+    },
+    {
+      "chunk": "AufenthG-73-1a",
+      "raw": "Absatz 8a oder 8b",
+      "target": "AufenthG § 73 Abs. 8b"
+    },
+    {
+      "chunk": "AufenthG-73-3a",
+      "raw": "Absatz 8a oder 8b",
+      "target": "AufenthG § 73 Abs. 8a"
+    },
+    {
+      "chunk": "AufenthG-73-3a",
+      "raw": "Absatz 8a oder 8b",
+      "target": "AufenthG § 73 Abs. 8b"
+    },
+    {
+      "chunk": "AufenthG-78-5",
+      "raw": "§ 4 Absatz 3",
+      "target": "AufenthG § 4 Abs. 3"
+    },
+    {
+      "chunk": "AufenthG-78-5",
+      "raw": "§ 7 Absatz 3b, 4 und 5",
+      "target": "AufenthG § 7 Abs. 3b"
+    },
+    {
+      "chunk": "AufenthG-78-5",
+      "raw": "§ 7 Absatz 3b, 4 und 5",
+      "target": "AufenthG § 7 Abs. 4"
+    },
+    {
+      "chunk": "AufenthG-78-5",
+      "raw": "§ 7 Absatz 3b, 4 und 5",
+      "target": "AufenthG § 7 Abs. 5"
+    },
+    {
+      "chunk": "AufenthG-78-5",
+      "raw": "§ 10 Absatz 1 bis 5, 6 Satz 1, Absatz 7, 8 Satz 1 und Absatz 9",
+      "target": "AufenthG § 10 Abs. 4"
+    },
+    {
+      "chunk": "AufenthG-78-5",
+      "raw": "§ 10 Absatz 1 bis 5, 6 Satz 1, Absatz 7, 8 Satz 1 und Absatz 9",
+      "target": "AufenthG § 10 Abs. 5"
+    },
+    {
+      "chunk": "AufenthG-78-5",
+      "raw": "§ 10 Absatz 1 bis 5, 6 Satz 1, Absatz 7, 8 Satz 1 und Absatz 9",
+      "target": "AufenthG § 10 Abs. 6"
+    },
+    {
+      "chunk": "AufenthG-78-5",
+      "raw": "§ 10 Absatz 1 bis 5, 6 Satz 1, Absatz 7, 8 Satz 1 und Absatz 9",
+      "target": "AufenthG § 10 Abs. 7"
+    },
+    {
+      "chunk": "AufenthG-78-5",
+      "raw": "§ 10 Absatz 1 bis 5, 6 Satz 1, Absatz 7, 8 Satz 1 und Absatz 9",
+      "target": "AufenthG § 10 Abs. 8"
+    },
+    {
+      "chunk": "AufenthG-78-5",
+      "raw": "§ 10 Absatz 1 bis 5, 6 Satz 1, Absatz 7, 8 Satz 1 und Absatz 9",
+      "target": "AufenthG § 10 Abs. 9"
+    },
+    {
+      "chunk": "AufenthG-78-5",
+      "raw": "§§ 10a, 11 Absatz 1 bis 5 und 7",
+      "target": "AufenthG § 10a Abs. None"
+    },
+    {
+      "chunk": "AufenthG-78-5",
+      "raw": "§§ 20a, 21, 21a, 21b, 27 Absatz 1 Nummer 6, Absatz 2 und 3",
+      "target": "AufenthG § 21a Abs. None"
+    },
+    {
+      "chunk": "AufenthG-78-5",
+      "raw": "§§ 20a, 21, 21a, 21b, 27 Absatz 1 Nummer 6, Absatz 2 und 3",
+      "target": "AufenthG § 21b Abs. None"
+    },
+    {
+      "chunk": "AufenthG-96-1",
+      "raw": "Absatz 1a",
+      "target": "AufenthG § 96 Abs. 1a"
+    },
+    {
+      "chunk": "AufenthG-98-3",
+      "raw": "Absatz 4a",
+      "target": "AufenthG § 98 Abs. 4a"
+    },
+    {
+      "chunk": "AufenthG-98-3",
+      "raw": "Absatz 4b",
+      "target": "AufenthG § 98 Abs. 4b"
+    },
+    {
+      "chunk": "AufenthG-104-12",
+      "raw": "§§ 34 und 35",
+      "target": "AsylG § 35 Abs. None"
+    },
+    {
+      "chunk": "AufenthG-105a",
+      "raw": "Absatzes 1",
+      "target": "AufenthG § 105a Abs. 1"
+    },
+    {
+      "chunk": "AufenthG-105c",
+      "raw": "§ 54a Absatz 1 bis 4",
+      "target": "AufenthG § 54a Abs. 1"
+    },
+    {
+      "chunk": "AufenthG-105c",
+      "raw": "§ 54a Absatz 1 bis 4",
+      "target": "AufenthG § 54a Abs. 2"
+    },
+    {
+      "chunk": "AufenthG-105c",
+      "raw": "§ 54a Absatz 1 bis 4",
+      "target": "AufenthG § 54a Abs. 3"
+    },
+    {
+      "chunk": "AufenthG-105c",
+      "raw": "§ 54a Absatz 1 bis 4",
+      "target": "AufenthG § 54a Abs. 4"
+    },
+    {
+      "chunk": "AsylG-87c-5",
+      "raw": "§ 23 Absatz 1",
+      "target": "AsylG § 23 Abs. 1"
+    }
+  ]
+}

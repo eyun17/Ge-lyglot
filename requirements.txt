@@ -1,0 +1,13 @@
+# core
+numpy
+rank_bm25
+chromadb>=1.5,<2       # optional vector store (python retrieval.py to-chroma)
+sentence-transformers   # pulls torch; on Linux/Windows install CPU torch first (see README note)
+# LLM
+openai            # default provider; also works with Ollama / vLLM
+# anthropic       # only if LLM_PROVIDER=anthropic
+# app
+gradio
+langgraph         # condition 4 (agent.py)
+# dev
+pytest
