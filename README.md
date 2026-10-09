@@ -9,6 +9,19 @@ The project compares four retrieval conditions on the same questions to see whic
 
 > **This is not legal or tax advice.** Use GesetzPolyglot only as an aid. The author accepts no liability for overreliance on its answers or for misuse; see [Disclaimer](#disclaimer).
 
+## Disclaimer
+
+GesetzPolyglot is a research prototype, meant only as an aid for understanding German statutes.
+
+- **Not advice.** It provides general legal information, not legal or tax advice. It does not replace the Ausländerbehörde, the BAMF, asylum procedure counselling, a lawyer or a tax advisor, and it does not assess anyone's individual case.
+- **Asylum deadlines are short.** If you have received a decision in an asylum procedure, get advice immediately; some deadlines are one or two weeks.
+- **Answers can be wrong.** Answers are generated automatically by a language model. They can be incomplete, outdated or wrong, even when they cite a statute and the citation check passes. The statute snapshot used is shown with every answer.
+- **Check the source.** Always read the cited original text on gesetze-im-internet.de, and for your own situation consult a qualified professional.
+- **No liability.** To the extent permitted by law, the author accepts no liability for decisions or actions taken on the basis of these answers, for overreliance on them, or for any misuse of this software. The software is provided "as is", without warranty of any kind.
+
+The same notice is shown in the web app, and every answer ends with a short version of it in the language of the question.
+
+
 ## Overview
 
 ```
@@ -319,18 +332,6 @@ python -m pytest -q
 ```
 
 Tests use a fake embedder, so they run without the bge-m3 model or an API key.
-
-## Disclaimer
-
-GesetzPolyglot is a research prototype, meant only as an aid for understanding German statutes.
-
-- **Not advice.** It provides general legal information, not legal or tax advice. It does not replace the Ausländerbehörde, the BAMF, asylum procedure counselling, a lawyer or a tax advisor, and it does not assess anyone's individual case.
-- **Asylum deadlines are short.** If you have received a decision in an asylum procedure, get advice immediately; some deadlines are one or two weeks.
-- **Answers can be wrong.** Answers are generated automatically by a language model. They can be incomplete, outdated or wrong, even when they cite a statute and the citation check passes. The statute snapshot used is shown with every answer.
-- **Check the source.** Always read the cited original text on gesetze-im-internet.de, and for your own situation consult a qualified professional.
-- **No liability.** To the extent permitted by law, the author accepts no liability for decisions or actions taken on the basis of these answers, for overreliance on them, or for any misuse of this software. The software is provided "as is", without warranty of any kind.
-
-The same notice is shown in the web app, and every answer ends with a short version of it in the language of the question.
 
 ## Not in git
 
