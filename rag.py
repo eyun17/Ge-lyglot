@@ -31,8 +31,12 @@ from typing import Protocol
 from laws import CORPUS, LAWS, OUT_OF_SCOPE, TOPIC, corpus_names
 from retrieval import RRF_K, LawIndex, cite
 
-# Bump when REWRITE_SYSTEM / ANSWER_SYSTEM / agent prompts change, so eval results say which version they used.
-PROMPT_VERSION = "v2"  # v1 texts: results/prompts_v1.txt
+# Prompt versions: v2 is the default; v1 is kept so experiments can be re-run and compared.
+# Choose with the environment variable PROMPT_VERSION. Add a version instead of editing one in place.
+PROMPT_VERSIONS = ("v1", "v2")
+PROMPT_VERSION = os.environ.get("PROMPT_VERSION", "v2")
+if PROMPT_VERSION not in PROMPT_VERSIONS:
+    raise SystemExit(f"PROMPT_VERSION must be one of {PROMPT_VERSIONS}, not {PROMPT_VERSION!r}")
 
 CONDITIONS = ("dense", "hybrid", "rewrite")
 STATUSES = ("answer", "refuse_out_of_scope", "explain_without_judgment")
@@ -233,6 +237,41 @@ from general knowledge.
 Start your reply with exactly one status line, then a blank line, then the answer:
 STATUS: answer | refuse_out_of_scope | explain_without_judgment"""
 
+# v1: before the dev-set experiment (no scope check, looser status rules).
+REWRITE_SYSTEM_V1 = f"""You turn a user's question about German {TOPIC} into search \
+queries for a retriever over the German statutes {corpus_names()}.
+Write 1 to 3 short German queries using the statutory terminology (e.g. "Aufenthaltserlaubnis \
+zum Zweck des Studiums Beschäftigung Arbeitstage" rather than "Studentenjob"). One query per \
+distinct legal sub-question. Do not answer the question.
+Return only JSON: {{"queries": ["...", "..."]}}"""
+
+ANSWER_SYSTEM_V1 = f"""You answer questions about German {TOPIC} ({', '.join(CORPUS)}) \
+for foreigners, using ONLY the statute excerpts provided.
+
+Rules:
+1. Reply in {{lang_name}}. Keep German legal terms in parentheses where helpful, e.g. 정주허가(Niederlassungserlaubnis).
+2. Every factual statement must be backed by an excerpt and cited right after it in exactly this \
+form: [AufenthG § 18a Abs. 1] or [BeschV § 26]. Cite only labels that appear in the excerpts.
+3. If the excerpts do not contain the answer, or the question is about another area of law \
+({OUT_OF_SCOPE}, ...), say that this is \
+outside what you can answer from {'/'.join(CORPUS)}. Do not answer from general knowledge.
+4. If the user asks whether THEY personally will get a permit or win a case, explain the \
+relevant requirements with citations but do not predict or decide their individual case.
+5. Asylum procedure: if the user asks about a deadline, an ongoing procedure or a decision in \
+their own case, explain the relevant rules with citations but do not judge the case, and tell them \
+to contact asylum procedure counselling (Asylverfahrensberatung) or a lawyer right away, because \
+deadlines can be very short.
+6. Many AsylG provisions refer to EU Regulations (EU) 2024/1347, 2024/1348 or 2024/1351. Their text \
+is not in the excerpts: say that the details are in the EU regulation instead of filling them in \
+from general knowledge.
+7. Be concise: 2 to 6 sentences, or a short list of requirements.
+
+Start your reply with exactly one status line, then a blank line, then the answer:
+STATUS: answer | refuse_out_of_scope | explain_without_judgment"""
+
+if PROMPT_VERSION == "v1":
+    REWRITE_SYSTEM, ANSWER_SYSTEM = REWRITE_SYSTEM_V1, ANSWER_SYSTEM_V1
+
 LANG_NAMES = {"ko": "Korean", "en": "English", "de": "German", "tr": "Turkish", "ar": "Arabic", "it": "Italian"}
 
 FOOTER = {
@@ -254,14 +293,17 @@ def format_excerpts(chunks: list[dict]) -> str:
 # --------------------------------------------------------------------------
 CITE_RE = re.compile(r"\[\s*(" + "|".join(map(re.escape, LAWS)) + r")\s*§\s*(\d+[a-z]?)"
                      r"(?:\s*(?:Abs\.|Absatz)\s*(\d+[a-z]?))?[^\]]*\]")
-STATUS_RE = re.compile(r"^\s*STATUS:\s*([a-z_]+)\s*\n+", re.I)
+STATUS_RE = re.compile(r"^\s*STATUS:([^\n]*)\n*", re.I)
 
 
 def parse_status(raw: str) -> tuple[str, str]:
+    """The first line must name exactly one status. Anything else (no line, an unknown word, or the
+    template copied as "answer | refuse_out_of_scope") is "unclear", so evaluation counts it as wrong."""
     m = STATUS_RE.match(raw)
-    if m and m.group(1).lower() in STATUSES:
-        return m.group(1).lower(), raw[m.end():].strip()
-    return "answer", STATUS_RE.sub("", raw, count=1).strip()
+    if not m:
+        return "unclear", raw.strip()
+    named = [s for s in STATUSES if re.search(rf"\b{s}\b", m.group(1).lower())]
+    return (named[0] if len(named) == 1 else "unclear"), raw[m.end():].strip()
 
 
 def parse_queries(raw: str) -> list[str]:

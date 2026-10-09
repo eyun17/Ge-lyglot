@@ -24,7 +24,7 @@ import numpy as np
 from langgraph.graph import END, START, StateGraph
 
 from laws import CORPUS, OUT_OF_SCOPE, corpus_names
-from rag import RRF_K, CountingLLM, detect_lang, finish
+from rag import PROMPT_VERSION, RRF_K, CountingLLM, detect_lang, finish
 from retrieval import cite
 
 K_PER_QUERY = 5      # hits per search query
@@ -43,6 +43,15 @@ If the user says they are a citizen of an EU/EEA country or Switzerland, add one
 whether the Residence Act applies to them, e.g. "Anwendungsbereich Aufenthaltsgesetz Unionsbürger \
 Freizügigkeitsgesetz".
 Return only JSON: {{"sub_questions": ["...", "..."], "queries": ["...", "..."]}}"""
+
+# v1: without the EU scope query
+PLAN_SYSTEM_V1 = f"""You prepare retrieval over the German statutes {corpus_names()}.
+Split the user's question into 1 to 3 legal sub-questions (in English). For each, write one short \
+German search query using statutory terminology (e.g. "Niederlassungserlaubnis Blaue Karte EU \
+Monate" rather than "permanent residence").
+Return only JSON: {{"sub_questions": ["...", "..."], "queries": ["...", "..."]}}"""
+if PROMPT_VERSION == "v1":
+    PLAN_SYSTEM = PLAN_SYSTEM_V1
 
 CHECK_SYSTEM = f"""You check whether retrieved statute excerpts are enough to answer some sub-questions.
 For each sub-question decide whether the excerpts contain the rule that answers it.

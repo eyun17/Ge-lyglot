@@ -33,7 +33,9 @@ app.py (Gradio UI) · eval_retrieval.py (검색 평가)
 | [rag.py](rag.py) | 검색 → 생성 → 인용 검증. 답변 상태는 `answer`, `refuse_out_of_scope`, `explain_without_judgment` 중 하나입니다. |
 | [agent.py](agent.py) | 질문을 하위 질문으로 나누고, 상호참조를 따라가고, 근거가 충분한지 확인해 최대 2번 다시 검색합니다. |
 | [app.py](app.py) | Gradio 웹 UI입니다. 화면은 영어이고, 요소마다 아래에 독일어가 작고 연하게 함께 나옵니다(법령의 언어가 독일어이기 때문). 답변은 질문한 언어로 나옵니다. |
-| [eval_retrieval.py](eval_retrieval.py) | 조항 단위 recall@k를 잽니다. |
+| [eval_retrieval.py](eval_retrieval.py) | 조항 단위 recall@k를 잽니다(LLM 없음). |
+| [eval_answers.py](eval_answers.py) | 골라 둔 문항에 LLM까지 포함해 끝까지 평가합니다. recall, 응답 유형, 인용, 비용을 기록합니다. |
+| [evalset/](evalset/) | 평가 질문(공통 세트와 난민 모듈, 각각 여섯 세트)과 [splits.json](evalset/splits.json)이 있습니다. |
 
 ### 비교하는 네 가지 조건
 
@@ -85,6 +87,7 @@ cp .env.example .env
 | `LLM_MODEL` | `gpt-5.4-nano` / `claude-sonnet-5-5` | |
 | `LLM_REASONING_EFFORT` | `low` | `none`, `low`, `medium`, `high`. 비워 두면 보내지 않습니다. |
 | `OPENAI_BASE_URL` | | 호환 서버용, 예: `http://localhost:11434/v1` (Ollama) |
+| `PROMPT_VERSION` | `v2` | `v1` 또는 `v2`. [LLM을 쓴 답변 평가](#llm을-쓴-답변-평가) 참고 |
 
 ## 사용법
 
@@ -150,12 +153,12 @@ BM25는 Chroma에 없는 기능이라 항상 메모리에서 돌고, hybrid는 "
 
 | 세트 | 파일 | 질문자 |
 |---|---|---|
-| `ko` | [evalset_draft_ko.jsonl](evalset_draft_ko.jsonl) | 한국인 (원문) |
-| `en` | [evalset_draft_en.jsonl](evalset_draft_en.jsonl) | 한국인 (`ko` 번역) |
-| `tr-TR` | [evalset_draft_tr.jsonl](evalset_draft_tr.jsonl) | 튀르키예 국적자 |
-| `ar-SY` | [evalset_draft_ar_sy.jsonl](evalset_draft_ar_sy.jsonl) | 시리아 국적자 |
-| `ar-PS` | [evalset_draft_ar_ps.jsonl](evalset_draft_ar_ps.jsonl) | 팔레스타인인 |
-| `it-IT` | [evalset_draft_it.jsonl](evalset_draft_it.jsonl) | 이탈리아 국적자 (EU) |
+| `ko` | [evalset_draft_ko.jsonl](evalset/evalset_draft_ko.jsonl) | 한국인 (원문) |
+| `en` | [evalset_draft_en.jsonl](evalset/evalset_draft_en.jsonl) | 한국인 (`ko` 번역) |
+| `tr-TR` | [evalset_draft_tr.jsonl](evalset/evalset_draft_tr.jsonl) | 튀르키예 국적자 |
+| `ar-SY` | [evalset_draft_ar_sy.jsonl](evalset/evalset_draft_ar_sy.jsonl) | 시리아 국적자 |
+| `ar-PS` | [evalset_draft_ar_ps.jsonl](evalset/evalset_draft_ar_ps.jsonl) | 팔레스타인인 |
+| `it-IT` | [evalset_draft_it.jsonl](evalset/evalset_draft_it.jsonl) | 이탈리아 국적자 (EU) |
 
 튀르키예, 시리아, 팔레스타인 출신은 독일에서 가장 큰 이민자 집단에 속하고, 이탈리아는 체류법이 대부분 적용되지 않는 EU 시민의 예로 넣었습니다. 파일마다 읽기용 `.md`가 함께 있습니다. 터키어·아랍어·이탈리아어 번역은 아직 원어민 검토를 받지 않았습니다.
 
@@ -209,11 +212,11 @@ numpy와 Chroma의 recall은 동일합니다.
 - 여러 조항을 묶어야 하는 `multi` 질문의 recall이 낮습니다. 상호참조를 따라가는 `agent` 조건이 이 부분을 겨냥합니다.
 - 시리아 세트와 팔레스타인 세트는 현지화된 6문항만 다르고 recall이 똑같습니다. 국적 표현은 검색에 거의 영향을 주지 않고 답에 영향을 줍니다. 그래서 아직 하지 않은 답변 단위 평가에서 확인해야 합니다.
 - 평가셋은 아직 초안입니다. 정답 조항은 직접 작성했고 아직 검증(`verified`)되지 않았습니다.
-- 조건 3·4(`rewrite`, `agent`)와 답변 품질에 대한 평가는 아직 이 README에 없습니다.
+- 조건 3·4(`rewrite`, `agent`)와 답변 품질은 LLM으로 작은 세트에서 평가합니다. [LLM을 쓴 답변 평가](#llm을-쓴-답변-평가)를 보세요.
 
 ### 난민·보호 모듈
 
-난민 지위, 보충적 보호, 체류 유예(Duldung), 가족 재결합, 망명 절차를 다루는 별도의 질문 세트입니다. 17문항(`single` 9, `multi` 4, `refusal` 4)이고, 파일은 `evalset_refugee_<세트>.jsonl`이며 읽기용 `.md`가 함께 있습니다. 질문에 국적이 나오지 않아 여섯 세트 모두 같은 질문이므로 언어 간 비교가 가능합니다. 공통 세트와는 다른 질문이라 따로 집계합니다(`module: refugee`). 정답 조항은 원문으로 확인했지만 아직 `verified`는 아닙니다.
+난민 지위, 보충적 보호, 체류 유예(Duldung), 가족 재결합, 망명 절차를 다루는 별도의 질문 세트입니다. 17문항(`single` 9, `multi` 4, `refusal` 4)이고, 파일은 `evalset/evalset_refugee_<세트>.jsonl`이며 읽기용 `.md`가 함께 있습니다. 질문에 국적이 나오지 않아 여섯 세트 모두 같은 질문이므로 언어 간 비교가 가능합니다. 공통 세트와는 다른 질문이라 따로 집계합니다(`module: refugee`). 정답 조항은 원문으로 확인했지만 아직 `verified`는 아닙니다.
 
 | 모드 | 전체 | ko | en | tr-TR | ar-SY | ar-PS | it-IT |
 |---|---|---|---|---|---|---|---|
@@ -223,6 +226,62 @@ numpy와 Chroma의 recall은 동일합니다.
 
 - **놓치는 이유는 언어가 아닙니다.** 6문항(r01, r04, r08, r11, r13, r15)은 여섯 언어 모두에서 0입니다. 원인은 조문을 쓰는 방식에 있습니다. 조문은 "난민"이라는 말을 거의 쓰지 않습니다. 난민의 영주권 조항인 AufenthG § 26 Abs. 3은 "§ 25 Abs. 1 또는 2에 따른 체류허가"라고만 쓰고, § 25 Abs. 2와 § 12a Abs. 1은 "EU 규정 2024/1347에 따른 국제적 보호"라고 씁니다. "난민"이라고 묻는 질문과 맞춰볼 단어가 없습니다. 해결책 후보는 두 가지입니다. 참조된 조항의 제목을 색인 텍스트에 함께 넣거나(그러면 § 26 Abs. 3에 "Aufenthalt aus humanitären Gründen"도 붙음), `agent`가 이런 참조를 따라가게 하는 것입니다.
 - 언어에 따라 갈리는 문항도 있습니다. 망명 소송 기한(r09, AsylG § 74 Abs. 1)은 한국어와 이탈리아어에서는 찾지만 나머지 네 언어에서는 못 찾습니다.
+
+### LLM을 쓴 답변 평가
+
+[eval_answers.py](eval_answers.py)는 LLM을 포함한 전체 파이프라인을 골라 둔 문항에 돌립니다. 조건마다 다음을 기록합니다.
+- 답변 단계에 넘어간 조문의 recall@8
+- 답변의 응답 유형이 `expected_behavior`와 맞는지
+- 검색 결과에 없는 인용
+- LLM 호출 수, 응답 시간, 토큰
+
+비용이 들기 때문에 [evalset/splits.json](evalset/splits.json)에 이름 붙여 둔 작은 세트로만 돌립니다.
+
+- `dev`: v1 프롬프트의 문제를 진단하고 v2를 만드는 데 쓴 어려운 10문항(dense recall 0)입니다.
+- `validation`: 모듈과 유형별로 고르게 무작위로 뽑은 20문항입니다. `dev`와 같은 질문은 어느 언어로도 들어 있지 않습니다. v2가 처음 보는 질문에서도 통하는지 확인하는 데 씁니다.
+
+```bash
+python eval_answers.py --split validation --prompts v2 --model gpt-5.4
+```
+
+**프롬프트 버전.** 두 버전 모두 [rag.py](rag.py)와 [agent.py](agent.py)에 있고, `PROMPT_VERSION`(또는 `--prompts`)으로 고릅니다. 기본값은 v2입니다. v1과 비교해 v2는 다음을 지시합니다.
+- 적용 범위를 먼저 확인할 것. EU·EEA 시민이면 AufenthG § 1 Abs. 2를 보고, `rewrite`와 에이전트 계획 단계에도 범위 확인용 검색어를 넣습니다.
+- `explain_without_judgment`는 사용자 본인 사건의 예측을 요구할 때만 쓸 것.
+- 질문의 일부만 다룰 수 있으면 거절하지 말고 그 부분을 답할 것.
+- 각 조항이 다루는 Absatz, Satz, 대상 집단을 정확히 읽을 것.
+- 사용자의 나라가 목록에 없으면 없다고 말할 것.
+- 질문의 잘못된 전제를 바로잡을 것.
+
+응답 유형 줄이 유형 하나를 정확히 쓰지 않으면 `unclear`(오답)로 채점합니다.
+
+**검증 결과** (20문항 × 4조건 = 실행당 답변 80개):
+
+| 모델 | 프롬프트 | 응답 유형 일치 | `unclear` | rewrite recall@8 | agent recall@8 | 비용 |
+|---|---|---|---|---|---|---|
+| gpt-5.4-nano | v1 | 58/80 | 3 | 0.559 | 0.529 | $0.12 |
+| gpt-5.4-nano | v2 | 71/80 | 6 | 0.500 | 0.676 | $0.12 |
+| gpt-5.4 | v1 | 60/80 | 0 | 0.588 | 0.676 | $1.35 |
+| gpt-5.4 | v2 | **79/80** | 0 | 0.647 | 0.647 | $1.51 |
+
+LLM 없이 같은 20문항을 검색하면 dense 0.765, hybrid 0.588입니다.
+
+**개발용 세트** (어려운 10문항, `rewrite` / `agent`의 응답 유형 일치와 recall@8):
+
+| 모델 | 프롬프트 | 응답 유형 일치 | recall@8 |
+|---|---|---|---|
+| gpt-5.4-nano | v1 | 4 / 5 | 0.45 / 0.65 |
+| gpt-5.4 | v1 | 8 / 8 | 0.50 / 0.40 |
+| gpt-5.4-nano | v2 | 8 / 6 | 0.60 / 0.55 |
+| gpt-5.4 | v2 | 10 / 10 | 0.60 / 0.65 |
+
+비용은 API가 알려준 토큰 수에 공개 단가를 곱한 값입니다. gpt-5.4는 입력·출력 100만 토큰당 $2.50 / $15이고, gpt-5.4-nano는 제3자 집계 사이트 기준 $0.20 / $1.25입니다. 지금까지 LLM 실험 전체 비용은 약 $4.80입니다.
+
+**발견한 점**
+- **v2는 처음 보는 문항에서도 통합니다.** 응답 유형 일치가 nano는 58에서 71로, gpt-5.4는 60에서 79로 올랐습니다. v1의 주된 오류였던 "규칙을 묻는 일반 질문에 '개인 사건은 판단할 수 없다'고 답하기"가 거의 사라졌습니다.
+- **nano에 남은 오류는 대부분 형식 오류입니다.** v2에서 nano가 틀린 9개 중 6개는 응답 유형 줄에 형식 예시("STATUS: answer | refuse_out_of_scope")를 그대로 베낀 경우입니다. gpt-5.4는 한 번도 그러지 않았습니다.
+- **응답 유형이 맞다고 답이 맞는 것은 아닙니다.** 개발용 세트에서 gpt-5.4(v1)는 보충적 보호를 2024년 개정 전 조문 번호(§ 25 Abs. 2 Satz 1의 "두 번째 경우")로 설명했습니다. 눈앞의 원문과 다른 내용입니다. 강한 모델은 학습할 때 본 옛 법으로 돌아갈 수 있어서, 답변은 여전히 사람이 읽어 봐야 합니다.
+- **`rewrite`는 어려운 질문에는 도움이 되고 쉬운 질문에는 해가 됩니다.** 개발용 세트에서는 dense가 아무것도 못 찾았고 `rewrite`가 0.45–0.60까지 올렸습니다. 무작위 검증 세트에서는 반대로 dense가 더 좋았습니다(0.765 대 0.50–0.65). `rewrite`는 원래 질문을 버리고 LLM이 만든 독일어 검색어로만 검색하는데, 이 검색어가 가끔 빗나갑니다(q09: Abs. 6 대신 § 82 Abs. 1). 원래 질문과 재작성한 검색어를 함께 검색하면 두 장점을 모두 살릴 수 있을 것으로 봅니다.
+- **정답 조항이 너무 좁게 잡힌 경우도 있습니다.** r08에서 gpt-5.4는 AufenthG § 12a Abs. 2–4로 올바르게 답했지만, 정답 조항에는 Abs. 1만 적혀 있습니다.
 
 ## 법령 추가하기
 
@@ -259,10 +318,12 @@ AsylG가 이 방식으로 추가한 첫 법령입니다. 받은 본문은 2024�
 **그 밖의 계획**
 - 참조된 조항의 제목을 각 청크와 함께 색인해서, "§ 25 Absatz 2"처럼 번호로만 가리키는 조항도 찾을 수 있게 하기 (난민 모듈 분석 참고)
 - EUR-Lex의 EU 망명 규정(2024/1347, 2024/1348, 2024/1351) 추가 (별도 파서 필요)
-- `rewrite`, `agent` 조건 결과를 검색 기준선과 함께 보고
-- EU 시민 적용 범위 확인 단계 (위 분석 참고)
+- `rewrite`: 원래 질문과 재작성한 검색어를 함께 검색하기 (답변 평가의 발견한 점 참고)
+- 응답 유형 형식 예시를 베끼는 작은 모델 대책, 또는 더 강한 기본 모델로 바꾸기
+- 정한 모델과 프롬프트 버전으로 246문항 전체 답변 평가 (검증 실행 기준 추산으로 nano 약 $1.5, gpt-5.4 약 $19)
+- EU 시민 적용 범위 확인을 LLM 검색어에 맡기지 않고, § 1 Abs. 2를 항상 가져오는 고정 규칙으로 만들기
 - 앱의 기본 화면 언어를 바꾸는 설정 (예: 터키어, 아랍어, 이탈리아어, 한국어). 독일어 병기는 기본으로 유지
-- 평가셋 정답 조항 검증, 터키어·아랍어·이탈리아어 번역 원어민 검토
+- 평가셋 정답 조항 검증(너무 좁게 잡힌 것이 있음, 답변 평가의 발견한 점 참고), 터키어·아랍어·이탈리아어 번역 원어민 검토
 - 체류령(AufenthV) 추가 (파서는 이미 지원)
 
 ## 테스트

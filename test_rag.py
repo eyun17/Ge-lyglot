@@ -34,8 +34,11 @@ def test_detect_lang():
 def test_parse_status_and_queries():
     assert parse_status("STATUS: refuse_out_of_scope\n\nDas ist Steuerrecht.") == (
         "refuse_out_of_scope", "Das ist Steuerrecht.")
-    assert parse_status("Just text") == ("answer", "Just text")
-    assert parse_status("STATUS: weird\n\nText") == ("answer", "Text")
+    assert parse_status("Just text") == ("unclear", "Just text")
+    assert parse_status("STATUS: weird\n\nText") == ("unclear", "Text")
+    # small models sometimes copy the template line
+    assert parse_status("STATUS: answer | refuse_out_of_scope\n\nText") == ("unclear", "Text")
+    assert parse_status("STATUS: **answer**\n\nText") == ("answer", "Text")
     assert parse_queries('noise {"queries": ["a", " ", "b", "c", "d"]} noise') == ["a", "b", "c"]
     assert parse_queries("not json") == []
 

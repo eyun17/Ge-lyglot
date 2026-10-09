@@ -33,7 +33,9 @@ app.py (Gradio UI) · eval_retrieval.py (retrieval evaluation)
 | [rag.py](rag.py) | Retrieve → generate → validate citations. Each answer has a status: `answer`, `refuse_out_of_scope` or `explain_without_judgment`. |
 | [agent.py](agent.py) | Splits the question into sub-questions, follows cross-references, checks whether the evidence is sufficient, and retries retrieval up to 2 times. |
 | [app.py](app.py) | Gradio web UI in English, with a small German gloss under each element (German is the language of the statutes). Answers come in the language of the question. |
-| [eval_retrieval.py](eval_retrieval.py) | Section-level recall@k. |
+| [eval_retrieval.py](eval_retrieval.py) | Section-level recall@k, no LLM. |
+| [eval_answers.py](eval_answers.py) | End-to-end evaluation with the LLM on chosen items: recall, answer status, citations, cost. |
+| [evalset/](evalset/) | Evaluation questions (core set and refugee module, six sets each) and [splits.json](evalset/splits.json). |
 
 ### The four conditions
 
@@ -85,6 +87,7 @@ cp .env.example .env
 | `LLM_MODEL` | `gpt-5.4-nano` / `claude-sonnet-5-5` | |
 | `LLM_REASONING_EFFORT` | `low` | `none`, `low`, `medium`, `high`; empty = not sent |
 | `OPENAI_BASE_URL` | | for compatible servers, e.g. `http://localhost:11434/v1` (Ollama) |
+| `PROMPT_VERSION` | `v2` | `v1` or `v2`, see [Answer evaluation](#answer-evaluation-with-the-llm) |
 
 ## Usage
 
@@ -150,12 +153,12 @@ The evaluation set has 30 questions in six sets. Each set is a language plus the
 
 | Set | File | Asker |
 |---|---|---|
-| `ko` | [evalset_draft_ko.jsonl](evalset_draft_ko.jsonl) | Korean (original) |
-| `en` | [evalset_draft_en.jsonl](evalset_draft_en.jsonl) | Korean (translation of `ko`) |
-| `tr-TR` | [evalset_draft_tr.jsonl](evalset_draft_tr.jsonl) | Turkish citizen |
-| `ar-SY` | [evalset_draft_ar_sy.jsonl](evalset_draft_ar_sy.jsonl) | Syrian citizen |
-| `ar-PS` | [evalset_draft_ar_ps.jsonl](evalset_draft_ar_ps.jsonl) | Palestinian |
-| `it-IT` | [evalset_draft_it.jsonl](evalset_draft_it.jsonl) | Italian citizen (EU) |
+| `ko` | [evalset_draft_ko.jsonl](evalset/evalset_draft_ko.jsonl) | Korean (original) |
+| `en` | [evalset_draft_en.jsonl](evalset/evalset_draft_en.jsonl) | Korean (translation of `ko`) |
+| `tr-TR` | [evalset_draft_tr.jsonl](evalset/evalset_draft_tr.jsonl) | Turkish citizen |
+| `ar-SY` | [evalset_draft_ar_sy.jsonl](evalset/evalset_draft_ar_sy.jsonl) | Syrian citizen |
+| `ar-PS` | [evalset_draft_ar_ps.jsonl](evalset/evalset_draft_ar_ps.jsonl) | Palestinian |
+| `it-IT` | [evalset_draft_it.jsonl](evalset/evalset_draft_it.jsonl) | Italian citizen (EU) |
 
 Turkish, Syrian and Palestinian communities are among the largest immigrant groups in Germany; Italian adds an EU citizen, for whom the Residence Act largely does not apply. Each file has a readable `.md` companion. The Turkish, Arabic and Italian translations have not yet been reviewed by native speakers.
 
@@ -209,11 +212,11 @@ Numpy and Chroma give identical recall.
 - Recall on `multi` questions is low. The `agent` condition, which follows cross-references, targets this.
 - The Syrian and Palestinian sets differ only in six localized questions, and their recall is identical. Nationality wording barely moves retrieval; it matters for the answer, which the answer-level evaluation (not yet done) has to check.
 - The evaluation set is a draft: gold sections were written by hand and have not yet been verified.
-- Results for conditions 3–4 (`rewrite`, `agent`) and answer-quality evaluation are not yet reported here.
+- Conditions 3–4 (`rewrite`, `agent`) and answer quality are evaluated with the LLM on smaller splits; see [Answer evaluation with the LLM](#answer-evaluation-with-the-llm).
 
 ### Refugee and protection module
 
-A second, separate question set covers refugee status, subsidiary protection, Duldung, family reunification and the asylum procedure: 17 questions (9 `single`, 4 `multi`, 4 `refusal`), files `evalset_refugee_<set>.jsonl` with readable `.md` companions. The questions do not mention nationality, so they are identical in all six sets and comparable across languages. They are reported separately from the core set (`module: refugee`), because they are different questions. Gold sections were checked against the statute text but are not yet `verified`.
+A second, separate question set covers refugee status, subsidiary protection, Duldung, family reunification and the asylum procedure: 17 questions (9 `single`, 4 `multi`, 4 `refusal`), files `evalset/evalset_refugee_<set>.jsonl` with readable `.md` companions. The questions do not mention nationality, so they are identical in all six sets and comparable across languages. They are reported separately from the core set (`module: refugee`), because they are different questions. Gold sections were checked against the statute text but are not yet `verified`.
 
 | Mode | All | ko | en | tr-TR | ar-SY | ar-PS | it-IT |
 |---|---|---|---|---|---|---|---|
@@ -223,6 +226,48 @@ A second, separate question set covers refugee status, subsidiary protection, Du
 
 - **The misses are not about language.** Six questions (r01, r04, r08, r11, r13, r15) score 0 in all six languages. The cause is how the statutes are written: they rarely say "refugee". AufenthG § 26 Abs. 3, the settlement permit for refugees, only says "a residence permit under § 25 Absatz 1 or 2"; § 25 Abs. 2 and § 12a Abs. 1 refer to "international protection under Regulation (EU) 2024/1347". A question that says "refugee" has nothing to match. Candidate fixes: add the titles of referenced sections to the indexed text (so § 26 Abs. 3 also carries "Aufenthalt aus humanitären Gründen"), or let the `agent` follow these references.
 - Some misses do depend on language: the asylum lawsuit deadline (r09, AsylG § 74 Abs. 1) is found in Korean and Italian but not in the other four.
+
+### Answer evaluation with the LLM
+
+[eval_answers.py](eval_answers.py) runs the whole pipeline, LLM included, on chosen items. For each condition it records the recall@8 of what the answer step receives, whether the answer's status matches `expected_behavior`, citations that are not in the retrieved text, LLM calls, latency and tokens. This costs money, so it runs on small named splits from [evalset/splits.json](evalset/splits.json):
+
+- `dev`: 10 hard items (dense recall 0) used to diagnose prompt v1 and write v2.
+- `validation`: 20 random items, stratified by module and type. Their question ids never appear in `dev`, in any language. Used to check that v2 holds up on questions it was not written for.
+
+```bash
+python eval_answers.py --split validation --prompts v2 --model gpt-5.4
+```
+
+**Prompt versions.** Both live in [rag.py](rag.py) and [agent.py](agent.py); `PROMPT_VERSION` (or `--prompts`) picks one, v2 by default. Compared with v1, v2 tells the model to check scope first (EU/EEA citizens: AufenthG § 1 Abs. 2, plus a scope query in `rewrite` and the agent's plan), to use `explain_without_judgment` only when asked to predict the user's own case, to answer the covered part of a question instead of refusing, to read each provision's Absatz, Satz and named group exactly, to say when the user's country is not in a list, and to correct wrong assumptions. A status line that does not name exactly one status is scored as `unclear` (wrong).
+
+**Validation** (20 items × 4 conditions = 80 answers per run):
+
+| Model | Prompts | Status matches | `unclear` | recall@8 rewrite | recall@8 agent | Cost |
+|---|---|---|---|---|---|---|
+| gpt-5.4-nano | v1 | 58/80 | 3 | 0.559 | 0.529 | $0.12 |
+| gpt-5.4-nano | v2 | 71/80 | 6 | 0.500 | 0.676 | $0.12 |
+| gpt-5.4 | v1 | 60/80 | 0 | 0.588 | 0.676 | $1.35 |
+| gpt-5.4 | v2 | **79/80** | 0 | 0.647 | 0.647 | $1.51 |
+
+Without the LLM, the same 20 items give dense 0.765 and hybrid 0.588.
+
+**Dev** (10 hard items; status matches and recall@8 for `rewrite` / `agent`):
+
+| Model | Prompts | Status matches | recall@8 |
+|---|---|---|---|
+| gpt-5.4-nano | v1 | 4 / 5 | 0.45 / 0.65 |
+| gpt-5.4 | v1 | 8 / 8 | 0.50 / 0.40 |
+| gpt-5.4-nano | v2 | 8 / 6 | 0.60 / 0.55 |
+| gpt-5.4 | v2 | 10 / 10 | 0.60 / 0.65 |
+
+Costs are API token counts times list prices (gpt-5.4: $2.50 / $15 per 1M input / output tokens; gpt-5.4-nano: $0.20 / $1.25 as listed by third-party trackers). All LLM experiments so far cost about $4.80.
+
+**Findings**
+- **v2 holds up on unseen items.** Status matches rose from 58 to 71 (nano) and from 60 to 79 (gpt-5.4). The main v1 error, answering a plain question about the rules with "I can't judge your case", almost disappears.
+- **Most remaining nano errors are format errors.** 6 of nano's 9 misses with v2 are a copied template line ("STATUS: answer | refuse_out_of_scope"). gpt-5.4 never did this.
+- **A matching status is not a correct answer.** On the dev set, gpt-5.4 with v1 described subsidiary protection with the numbering from before the 2024 reform (§ 25 Abs. 2 Satz 1, "second alternative"), contradicting the excerpt in front of it. A stronger model can fall back on outdated training knowledge, so answers still have to be read.
+- **`rewrite` helps on hard questions and hurts on easy ones.** On the dev items dense found nothing and `rewrite` reached 0.45–0.60. On the random validation items dense is better (0.765 vs 0.50–0.65): `rewrite` searches only the LLM's German queries and drops the original question, and the queries sometimes drift (q09: § 82 Abs. 1 instead of Abs. 6). Searching the original question together with the rewritten queries should keep both gains.
+- **Some misses are gold sections that are too narrow.** For r08, gpt-5.4 answered correctly from AufenthG § 12a Abs. 2–4, but the gold names only Abs. 1.
 
 ## Adding a law
 
@@ -259,10 +304,12 @@ What this involves:
 **Other planned work**
 - index the titles of referenced sections with each chunk, so provisions that only cite "§ 25 Absatz 2" can still be found (see the refugee module findings)
 - the EU asylum regulations (2024/1347, 2024/1348, 2024/1351) from EUR-Lex, which needs its own parser
-- report `rewrite` and `agent` results alongside the retrieval baselines
-- a scope check for EU citizens (see Findings)
+- `rewrite`: search the original question together with the rewritten queries (see the answer evaluation findings)
+- a format fix for small models that copy the status template, or a stronger default model
+- a full answer evaluation over all 246 questions with the chosen model and prompt version (about $1.5 with nano, about $19 with gpt-5.4, extrapolated from the validation runs)
+- a deterministic scope check for EU citizens, so § 1 Abs. 2 is always retrieved rather than left to the LLM's queries
 - a setting to switch the app's main UI language (e.g. Turkish, Arabic, Italian, Korean); the German gloss stays on by default
-- verify the gold sections in the evaluation set, and have native speakers review the Turkish, Arabic and Italian translations
+- verify the gold sections in the evaluation set (some are too narrow, see the answer evaluation findings), and have native speakers review the Turkish, Arabic and Italian translations
 - add the Residence Ordinance (AufenthV); the parser already knows it
 
 ## Tests

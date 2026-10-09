@@ -1,0 +1,42 @@
+{
+  "dev": {
+    "items": [
+      "ko:q03",
+      "ar-SY:q10",
+      "tr-TR:q15",
+      "it-IT:q15",
+      "en:q16",
+      "en:r01",
+      "ko:r04",
+      "tr-TR:r11",
+      "it-IT:r13",
+      "ar-PS:r16"
+    ],
+    "note": "10 hard items (dense recall 0) used to diagnose v1 and write prompt v2"
+  },
+  "validation": {
+    "items": [
+      "ko:q05",
+      "en:q09",
+      "tr-TR:q04",
+      "ar-SY:q11",
+      "ar-PS:q01",
+      "it-IT:q18",
+      "ko:q23",
+      "en:q22",
+      "tr-TR:q21",
+      "ar-SY:q14",
+      "ar-PS:q25",
+      "it-IT:q28",
+      "ko:r09",
+      "en:r12",
+      "tr-TR:r06",
+      "ar-SY:r08",
+      "ar-PS:r10",
+      "it-IT:r05",
+      "ko:r17",
+      "en:r15"
+    ],
+    "note": "20 random items, stratified by module and type, ids disjoint from dev in every language; seed 20261009. Use to compare prompt versions and models."
+  }
+}

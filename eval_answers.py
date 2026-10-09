@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """End-to-end evaluation with the LLM: retrieval recall, answer status and citations, per condition.
 
-    python eval_answers.py --pick ko:q03 it-IT:q15 en:r01      # set:id, from all evalset files
+    python eval_answers.py --pick ko:q03 it-IT:q15 en:r01      # set:id, from all evalset/*.jsonl files
     python eval_answers.py --pick ko:q03 --conditions rewrite agent
     python eval_answers.py --pick ko:q03 --model gpt-5.4          # overrides LLM_MODEL from .env
+    python eval_answers.py --split validation --prompts v1        # items from evalset/splits.json
 
 Unlike eval_retrieval.py this calls the LLM (costs money). Per question and condition it records
     recall@8        gold sections in the first 8 chunks handed to the answer step
@@ -21,9 +22,7 @@ import os
 import time
 from pathlib import Path
 
-from eval_retrieval import is_hit, parse_gold
-import rag as rag_module
-from rag import RAG, llm_from_env
+from eval_retrieval import EVALSET_DIR, is_hit, parse_gold
 from retrieval import LawIndex, cite
 
 CONDITIONS = ["dense", "hybrid", "rewrite", "agent"]
@@ -47,17 +46,30 @@ def recall(golds: list[tuple], chunks: list[dict]) -> float | None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--pick", nargs="+", required=True, help="set:id, e.g. ko:q03 ar-PS:r16")
+    pick = ap.add_mutually_exclusive_group(required=True)
+    pick.add_argument("--pick", nargs="+", help="set:id, e.g. ko:q03 ar-PS:r16")
+    pick.add_argument("--split", help="a named list of set:id in evalset/splits.json, e.g. dev, validation")
     ap.add_argument("--conditions", nargs="+", default=CONDITIONS, choices=CONDITIONS)
     ap.add_argument("--index", type=Path, default=Path("data/index"))
     ap.add_argument("--out", type=Path, default=Path("results"))
     ap.add_argument("--run", default=time.strftime("%Y%m%d-%H%M%S"), help="name of the output file")
     ap.add_argument("--model", help="LLM model, overrides LLM_MODEL")
+    ap.add_argument("--prompts", choices=["v1", "v2"], help="prompt version, overrides PROMPT_VERSION")
     args = ap.parse_args()
     if args.model:
         os.environ["LLM_MODEL"] = args.model  # .env only fills unset variables
+    if args.prompts:
+        os.environ["PROMPT_VERSION"] = args.prompts
+    import rag as rag_module  # after the environment is set: prompts are chosen at import
+    from rag import RAG, llm_from_env
+    if args.split:
+        splits = json.loads((EVALSET_DIR / "splits.json").read_text(encoding="utf-8"))
+        args.pick = splits[args.split]["items"]
 
-    items = load_items(sorted(Path(".").glob("evalset_*.jsonl")))
+    files = sorted(EVALSET_DIR.glob("evalset_*.jsonl"))
+    if not files:
+        raise SystemExit(f"no evalset files in {EVALSET_DIR}")
+    items = load_items(files)
     picked = []
     for p in args.pick:
         set_, qid = p.split(":")

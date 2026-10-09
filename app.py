@@ -46,6 +46,7 @@ STATUS_LABELS = {
     "answer": ("✅ Answer", "Antwort"),
     "refuse_out_of_scope": ("⛔ Out of scope", "Außerhalb des Anwendungsbereichs"),
     "explain_without_judgment": ("⚖️ Requirements only, no individual judgment", "Nur Voraussetzungen, keine Einzelfallbeurteilung"),
+    "unclear": ("❔ Answer type unclear, read with care", "Antworttyp unklar, bitte genau prüfen"),
 }
 
 
@@ -221,7 +222,8 @@ def build_ui(answer_fn, examples: list[list[str]]) -> gr.Blocks:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--index", default="data/index")
-    ap.add_argument("--evalset", default="evalset_draft_en.jsonl", help="file for example questions")
+    ap.add_argument("--evalset", default=str(Path(__file__).resolve().parent / "evalset" / "evalset_draft_en.jsonl"),
+                    help="file for example questions")
     ap.add_argument("--share", action="store_true")
     ap.add_argument("--port", type=int, default=7860)
     args = ap.parse_args()

@@ -3,11 +3,12 @@
 
     python eval_retrieval.py                       # dense + hybrid, k=8, core set + refugee module, all sets
     python eval_retrieval.py --modes dense bm25 hybrid --k 5
-    python eval_retrieval.py --evalset evalset_draft_en.jsonl
+    python eval_retrieval.py --evalset evalset/evalset_draft_en.jsonl
     python eval_retrieval.py --store numpy            # exact baseline
     python eval_retrieval.py --store chroma           # same evalset on the Chroma (HNSW) store
 
-Reads one or more evalset files; items with empty gold_sections are skipped.
+Reads one or more evalset files (default: every core and refugee file in evalset/);
+items with empty gold_sections are skipped.
 Items carry a "module" ("core" if absent, e.g. "refugee"); recall is reported per module, then by set and type.
 Writes results/retrieval_<store>_<mode>.jsonl (per item).
 """
@@ -20,6 +21,8 @@ from collections import defaultdict
 from pathlib import Path
 
 from retrieval import LawIndex, cite
+
+EVALSET_DIR = Path(__file__).resolve().parent / "evalset"
 
 GOLD_RE = re.compile(r"^(\S+)\s*§\s*(\d+[a-z]?)(?:\s+Abs\.\s*(\d+[a-z]?))?$")
 
@@ -76,7 +79,7 @@ def summarize(rows: list[dict]) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--evalset", type=Path, nargs="+",
-                    default=[Path(f"evalset_{m}_{l}.jsonl") for m in ("draft", "refugee")
+                    default=[EVALSET_DIR / f"evalset_{m}_{l}.jsonl" for m in ("draft", "refugee")
                              for l in ("ko", "en", "tr", "ar_sy", "ar_ps", "it")])
     ap.add_argument("--index", type=Path, default=Path("data/index"))
     ap.add_argument("--out", type=Path, default=Path("results"))
@@ -86,9 +89,12 @@ def main() -> None:
                     help="vector store to evaluate (default: the one recorded in meta.json)")
     args = ap.parse_args()
 
+    missing = [str(p) for p in args.evalset if not p.exists()]
+    if missing:  # never evaluate silently on fewer files than asked for
+        raise SystemExit("evalset file(s) not found: " + ", ".join(missing))
     index = LawIndex.load(args.index, store=args.store)
     print(f"vector store: {index.store.name}")
-    items = [json.loads(l) for p in args.evalset if p.exists()
+    items = [json.loads(l) for p in args.evalset
              for l in p.open(encoding="utf-8") if l.strip()]
     args.out.mkdir(parents=True, exist_ok=True)
     bad = set()
