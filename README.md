@@ -5,7 +5,7 @@ Ask about German law in your own language, get answers grounded in the original 
 GesetzPolyglot is a retrieval-augmented QA system for the German laws that matter most to foreigners living in Germany.
 The current corpus covers residence, employment and asylum law: the Residence Act (**AufenthG**), the Employment Ordinance (**BeschV**) and the Asylum Act (**AsylG**). Tax law for foreigners is next (see [Roadmap](#roadmap)).
 Users ask in Korean, English, Turkish, Arabic, Italian or German; the system retrieves the German statute text, answers with citations, and checks that every citation points to a passage it actually retrieved.
-The project compares four retrieval conditions on the same questions to see which one finds the legal basis for an answer most reliably.
+The project compares four retrieval conditions, several LLMs and two prompt versions on the same questions, to see which setup finds the legal basis for an answer most reliably and answers correctly.
 
 > **This is not legal or tax advice.** Use GesetzPolyglot only as an aid. The author accepts no liability for overreliance on its answers or for misuse; see [Disclaimer](#disclaimer).
 
@@ -35,7 +35,7 @@ data/index/
         │  rag.py             conditions 1–3: single-pass RAG + citation validation
         │  agent.py           condition 4: LangGraph agent
         ▼
-app.py (Gradio UI) · eval_retrieval.py (retrieval evaluation)
+app.py (Gradio UI) · eval_retrieval.py (retrieval, no LLM) · eval_answers.py (end to end, with LLM)
 ```
 
 | File | Purpose |
@@ -97,7 +97,7 @@ cp .env.example .env
 |---|---|---|
 | `OPENAI_API_KEY` | | required for OpenAI |
 | `LLM_PROVIDER` | `openai` | `openai` or `anthropic` |
-| `LLM_MODEL` | `gpt-5.4-nano` / `claude-sonnet-5-5` | |
+| `LLM_MODEL` | `gpt-5.4-mini` / `claude-sonnet-5-5` | chosen from the [answer evaluation](#answer-evaluation-with-the-llm) |
 | `LLM_REASONING_EFFORT` | `low` | `none`, `low`, `medium`, `high`; empty = not sent |
 | `OPENAI_BASE_URL` | | for compatible servers, e.g. `http://localhost:11434/v1` (Ollama) |
 | `PROMPT_VERSION` | `v2` | `v1` or `v2`, see [Answer evaluation](#answer-evaluation-with-the-llm) |
@@ -162,7 +162,7 @@ At 1,378 chunks numpy is fast enough. Chroma was added not for speed but for per
 
 ## Evaluation
 
-The evaluation set has 30 questions in six sets. Each set is a language plus the nationality of the person asking:
+The core evaluation set has 30 questions in six sets (the [refugee module](#refugee-and-protection-module) below is a second set). Each set is a language plus the nationality of the person asking:
 
 | Set | File | Asker |
 |---|---|---|
@@ -217,13 +217,13 @@ Numpy and Chroma give identical recall.
 - Dense retrieval with bge-m3 holds up across all languages (0.532–0.590 on the sets with the same gold sections). Cross-lingual retrieval into German works without translation.
 - **German terms in the question help a lot.** An earlier draft wrote terms like "vocational training (Ausbildung)". Removing the German terms in parentheses lowered dense recall from 0.593 to 0.567 overall (Korean 0.571 → 0.532, Arabic 0.628 → 0.590) and left BM25 with almost nothing (0.085 → 0.019). Real users rarely add the German term, so the current numbers are the realistic baseline, and this is the gap `rewrite` is meant to close.
 - **A larger corpus did not hurt dense retrieval.** Adding AsylG grew the corpus from 1,004 to 1,378 chunks (+37%). Dense recall stayed exactly the same on all 156 questions: no question lost or gained a gold section, and AsylG chunks entered the top 8 for only 7 questions. Hybrid moved a little in both directions (Turkish 0.551 → 0.513, Italian 0.378 → 0.417), because BM25 now pulls AsylG chunks in as noise for 54 questions. The previous results are kept in `results/before_asylg/`.
-- **Scope is not retrieved.** On the five Italian questions where the correct answer is "the Residence Act does not apply to EU citizens", recall is 0 in every mode. Retrieval finds the topic (student work, Blue Card) but never AufenthG § 1 Abs. 2, the section that says the whole topic is out of scope. This is why `it-IT` scores lowest. A scope check before retrieval (e.g. always pulling § 1 Abs. 2 when the asker is an EU citizen) is a candidate fix.
+- **Scope is not retrieved.** On the five Italian questions where the correct answer is "the Residence Act does not apply to EU citizens", recall is 0 in every mode. Retrieval finds the topic (student work, Blue Card) but never AufenthG § 1 Abs. 2, the section that says the whole topic is out of scope. This is why `it-IT` scores lowest. With prompt v2, `rewrite` adds a scope query and does find § 1 Abs. 2 (see [Answer evaluation](#answer-evaluation-with-the-llm)); a deterministic check that always pulls § 1 Abs. 2 for EU citizens would not depend on the LLM.
 - BM25 barely works, because the questions are not in German. How much that hurts hybrid depends on the script:
   - Korean and Arabic share no tokens with German. BM25 returns nothing for 25/26 Korean and 25/26 Arabic questions, so hybrid falls back to dense and loses nothing.
   - English, Turkish and Italian use Latin script, so BM25 almost always finds *some* matching tokens, mostly noise. For English it returns results for 26/26 questions, and hybrid drops from 0.571 to 0.378.
   - The `rewrite` condition, which turns questions into German queries, targets exactly this.
 - Recall on `multi` questions is low. The `agent` condition, which follows cross-references, targets this.
-- The Syrian and Palestinian sets differ only in six localized questions, and their recall is identical. Nationality wording barely moves retrieval; it matters for the answer, which the answer-level evaluation (not yet done) has to check.
+- The Syrian and Palestinian sets differ only in six localized questions, and their recall is identical. Nationality wording barely moves retrieval; it matters for the answer, which only the [answer evaluation](#answer-evaluation-with-the-llm) can check.
 - The evaluation set is a draft: gold sections were written by hand and have not yet been verified.
 - Conditions 3–4 (`rewrite`, `agent`) and answer quality are evaluated with the LLM on smaller splits; see [Answer evaluation with the LLM](#answer-evaluation-with-the-llm).
 
@@ -248,8 +248,14 @@ A second, separate question set covers refugee status, subsidiary protection, Du
 - `validation`: 20 random items, stratified by module and type. Their question ids never appear in `dev`, in any language. Used to check that v2 holds up on questions it was not written for.
 
 ```bash
-python eval_answers.py --split validation --prompts v2 --model gpt-5.4
+python eval_answers.py --split validation
 ```
+
+```bash
+python eval_answers.py --split dev --prompts v1 --model gpt-5.4
+```
+
+Without `--model` and `--prompts` it uses the defaults (gpt-5.4-mini, v2).
 
 **Prompt versions.** Both live in [rag.py](rag.py) and [agent.py](agent.py); `PROMPT_VERSION` (or `--prompts`) picks one, v2 by default. Compared with v1, v2 tells the model to check scope first (EU/EEA citizens: AufenthG § 1 Abs. 2, plus a scope query in `rewrite` and the agent's plan), to use `explain_without_judgment` only when asked to predict the user's own case, to answer the covered part of a question instead of refusing, to read each provision's Absatz, Satz and named group exactly, to say when the user's country is not in a list, and to correct wrong assumptions. A status line that does not name exactly one status is scored as `unclear` (wrong).
 
@@ -259,6 +265,7 @@ python eval_answers.py --split validation --prompts v2 --model gpt-5.4
 |---|---|---|---|---|---|---|
 | gpt-5.4-nano | v1 | 58/80 | 3 | 0.559 | 0.529 | $0.12 |
 | gpt-5.4-nano | v2 | 71/80 | 6 | 0.500 | 0.676 | $0.12 |
+| gpt-5.4-mini | v2 | **79/80** | 0 | 0.471 | 0.765 | $0.42 |
 | gpt-5.4 | v1 | 60/80 | 0 | 0.588 | 0.676 | $1.35 |
 | gpt-5.4 | v2 | **79/80** | 0 | 0.647 | 0.647 | $1.51 |
 
@@ -271,13 +278,16 @@ Without the LLM, the same 20 items give dense 0.765 and hybrid 0.588.
 | gpt-5.4-nano | v1 | 4 / 5 | 0.45 / 0.65 |
 | gpt-5.4 | v1 | 8 / 8 | 0.50 / 0.40 |
 | gpt-5.4-nano | v2 | 8 / 6 | 0.60 / 0.55 |
+| gpt-5.4-mini | v2 | 9 / 10 | 0.65 / 0.50 |
 | gpt-5.4 | v2 | 10 / 10 | 0.60 / 0.65 |
 
-Costs are API token counts times list prices (gpt-5.4: $2.50 / $15 per 1M input / output tokens; gpt-5.4-nano: $0.20 / $1.25 as listed by third-party trackers). All LLM experiments so far cost about $4.80.
+Costs are API token counts times list prices (gpt-5.4: $2.50 / $15 per 1M input / output tokens; gpt-5.4-mini: $0.75 / $4.50 and gpt-5.4-nano: $0.20 / $1.25, as listed by third-party trackers). All LLM experiments so far cost about $5.40. Average time per question with the agent on the validation set: nano 14 s, mini 10 s, gpt-5.4 24 s.
 
 **Findings**
+- **gpt-5.4-mini matches gpt-5.4 at about a quarter of the cost.** With v2 it got 79/80 on validation (same as gpt-5.4), made no format errors, and was the fastest. On the dev items it gave correct answers where nano failed: it cited § 1 Abs. 2 for the Italian EU-citizen question, separated § 26 Abs. 3 (refugees) from Abs. 4 (subsidiary protection), and corrected the Blue Card premise. It is now the default model.
+- **v2's own examples can leak into citations.** Once, mini cited AufenthG § 1 Abs. 2 although it was not retrieved; the prompt mentions it in the scope rule. The citation check flags this (`invalid`), which is what it is for.
 - **v2 holds up on unseen items.** Status matches rose from 58 to 71 (nano) and from 60 to 79 (gpt-5.4). The main v1 error, answering a plain question about the rules with "I can't judge your case", almost disappears.
-- **Most remaining nano errors are format errors.** 6 of nano's 9 misses with v2 are a copied template line ("STATUS: answer | refuse_out_of_scope"). gpt-5.4 never did this.
+- **Most remaining nano errors are format errors.** 6 of nano's 9 misses with v2 are a copied template line ("STATUS: answer | refuse_out_of_scope"). gpt-5.4 and gpt-5.4-mini never did this.
 - **A matching status is not a correct answer.** On the dev set, gpt-5.4 with v1 described subsidiary protection with the numbering from before the 2024 reform (§ 25 Abs. 2 Satz 1, "second alternative"), contradicting the excerpt in front of it. A stronger model can fall back on outdated training knowledge, so answers still have to be read.
 - **`rewrite` helps on hard questions and hurts on easy ones.** On the dev items dense found nothing and `rewrite` reached 0.45–0.60. On the random validation items dense is better (0.765 vs 0.50–0.65): `rewrite` searches only the LLM's German queries and drops the original question, and the queries sometimes drift (q09: § 82 Abs. 1 instead of Abs. 6). Searching the original question together with the rewritten queries should keep both gains.
 - **Some misses are gold sections that are too narrow.** For r08, gpt-5.4 answered correctly from AufenthG § 12a Abs. 2–4, but the gold names only Abs. 1.
@@ -318,8 +328,8 @@ What this involves:
 - index the titles of referenced sections with each chunk, so provisions that only cite "§ 25 Absatz 2" can still be found (see the refugee module findings)
 - the EU asylum regulations (2024/1347, 2024/1348, 2024/1351) from EUR-Lex, which needs its own parser
 - `rewrite`: search the original question together with the rewritten queries (see the answer evaluation findings)
-- a format fix for small models that copy the status template, or a stronger default model
-- a full answer evaluation over all 246 questions with the chosen model and prompt version (about $1.5 with nano, about $19 with gpt-5.4, extrapolated from the validation runs)
+- a format fix for small models that copy the status template, if gpt-5.4-nano is used to save cost
+- a full answer evaluation over all 246 questions with the chosen model and prompt version (about $5 with the default gpt-5.4-mini; $1.5 with nano, $19 with gpt-5.4; extrapolated from the validation runs)
 - a deterministic scope check for EU citizens, so § 1 Abs. 2 is always retrieved rather than left to the LLM's queries
 - a setting to switch the app's main UI language (e.g. Turkish, Arabic, Italian, Korean); the German gloss stays on by default
 - verify the gold sections in the evaluation set (some are too narrow, see the answer evaluation findings), and have native speakers review the Turkish, Arabic and Italian translations
@@ -335,6 +345,6 @@ Tests use a fake embedder, so they run without the bge-m3 model or an API key.
 
 ## Not in git
 
-`data/index/` (embeddings and Chroma), `results/`, `.env` and `.venv/` are git-ignored. To reproduce, run steps 1–2 above.
+`data/index/` (embeddings and Chroma), `results/`, `.env` and `.venv/` are git-ignored. To reproduce, run steps 1–2 above, then `eval_retrieval.py` and `eval_answers.py`; the item lists for the LLM runs are in [evalset/splits.json](evalset/splits.json).
 
 A Korean version of this README is in [README.ko.md](README.ko.md).

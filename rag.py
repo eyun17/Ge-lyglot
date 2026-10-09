@@ -14,7 +14,7 @@ Conditions (plan section 5):
 LLM is configured by environment variables or a .env file next to this script:
     OPENAI_API_KEY
     LLM_PROVIDER         = openai (default) | anthropic
-    LLM_MODEL            = default gpt-5.4-nano (openai) / claude-sonnet-5-5 (anthropic)
+    LLM_MODEL            = default gpt-5.4-mini (openai) / claude-sonnet-5-5 (anthropic)
     LLM_REASONING_EFFORT = low (default) | none | medium | high ; empty = do not send
     OPENAI_BASE_URL      = only for compatible servers, e.g. http://localhost:11434/v1 (Ollama)
 """
@@ -138,7 +138,7 @@ def llm_from_env() -> LLM:
     if provider == "openai":
         if not os.environ.get("OPENAI_API_KEY") and not os.environ.get("OPENAI_BASE_URL"):
             raise SystemExit("OPENAI_API_KEY is not set: put it in the .env file (see .env.example)")
-        return OpenAICompatLLM(os.environ.get("LLM_MODEL", "gpt-5.4-nano"),
+        return OpenAICompatLLM(os.environ.get("LLM_MODEL", "gpt-5.4-mini"),
                                os.environ.get("OPENAI_BASE_URL"),
                                os.environ.get("LLM_REASONING_EFFORT", "low") or None)
     if provider == "anthropic":
