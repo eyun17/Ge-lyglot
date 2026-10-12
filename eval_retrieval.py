@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Section-level retrieval recall for the single-pass baselines (conditions 1-2).
 
-    python eval_retrieval.py                       # dense + hybrid, k=8, core set + refugee module, all sets
+    python eval_retrieval.py                       # dense + hybrid, k=8, core set + refugee and tax modules, all sets
     python eval_retrieval.py --modes dense bm25 hybrid --k 5
     python eval_retrieval.py --evalset evalset/evalset_draft_en.jsonl
     python eval_retrieval.py --store numpy            # exact baseline
     python eval_retrieval.py --store chroma           # same evalset on the Chroma (HNSW) store
 
-Reads one or more evalset files (default: every core and refugee file in evalset/);
+Reads one or more evalset files (default: every core, refugee and tax file in evalset/);
 items with empty gold_sections are skipped.
 Items carry a "module" ("core" if absent, e.g. "refugee"); recall is reported per module, then by set and type.
 Writes results/retrieval_<store>_<mode>.jsonl (per item).
@@ -24,7 +24,8 @@ from retrieval import LawIndex, cite
 
 EVALSET_DIR = Path(__file__).resolve().parent / "evalset"
 
-GOLD_RE = re.compile(r"^(\S+)\s*§\s*(\d+[a-z]?)(?:\s+Abs\.\s*(\d+[a-z]?))?$")
+# law abbreviations may contain a space: "SGB VI § 210 Abs. 1"
+GOLD_RE = re.compile(r"^(\S+(?: [IVX]+)?)\s*§\s*(\d+[a-z]?)(?:\s+Abs\.\s*(\d+[a-z]?))?$")
 
 
 def parse_gold(s: str) -> tuple[str, str, str | None]:
@@ -63,7 +64,7 @@ def evaluate(index: LawIndex, items: list[dict], mode: str, k: int) -> list[dict
 
 def summarize(rows: list[dict]) -> dict:
     """Keys: 'all', '<set>', '<set>/<type>'. A set is a language plus the asker's nationality,
-    e.g. ar-SY and ar-PS; files without a "set" field fall back to the language."""
+    e.g. ar-SY and ar-EG; files without a "set" field fall back to the language."""
     groups = defaultdict(list)
     for r in rows:
         groups["all"].append(r)
@@ -79,8 +80,8 @@ def summarize(rows: list[dict]) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--evalset", type=Path, nargs="+",
-                    default=[EVALSET_DIR / f"evalset_{m}_{l}.jsonl" for m in ("draft", "refugee")
-                             for l in ("ko", "en", "tr", "ar_sy", "ar_ps", "it")])
+                    default=[EVALSET_DIR / f"evalset_{m}_{l}.jsonl" for m in ("draft", "refugee", "tax")
+                             for l in ("ko", "en", "tr", "ar_sy", "ar_eg", "it")])
     ap.add_argument("--index", type=Path, default=Path("data/index"))
     ap.add_argument("--out", type=Path, default=Path("results"))
     ap.add_argument("--modes", nargs="+", default=["dense", "hybrid"])

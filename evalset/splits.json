@@ -10,9 +10,9 @@
       "ko:r04",
       "tr-TR:r11",
       "it-IT:r13",
-      "ar-PS:r16"
+      "ar-EG:r16"
     ],
-    "note": "10 hard items (dense recall 0) used to diagnose v1 and write prompt v2"
+    "note": "10 hard items (dense recall 0) used to diagnose v1 and write prompt v2. ar-EG:r16 replaces ar-PS:r16 (identical question text)."
   },
   "validation": {
     "items": [
@@ -20,23 +20,43 @@
       "en:q09",
       "tr-TR:q04",
       "ar-SY:q11",
-      "ar-PS:q01",
+      "ar-EG:q01",
       "it-IT:q18",
       "ko:q23",
       "en:q22",
       "tr-TR:q21",
       "ar-SY:q14",
-      "ar-PS:q25",
+      "ar-EG:q25",
       "it-IT:q28",
       "ko:r09",
       "en:r12",
       "tr-TR:r06",
       "ar-SY:r08",
-      "ar-PS:r10",
+      "ar-EG:r10",
       "it-IT:r05",
       "ko:r17",
       "en:r15"
     ],
-    "note": "20 random items, stratified by module and type, ids disjoint from dev in every language; seed 20261009. Use to compare prompt versions and models."
+    "note": "20 random items, stratified by module and type, ids disjoint from dev in every language; seed 20261009. Use to compare prompt versions and models. On 2026-10-12 the Palestinian set (ar-PS) was replaced by an Egyptian set (ar-EG): ar-EG:q01 names an Egyptian instead of a Palestinian asker; the other replaced items have identical question text."
+  },
+  "tax": {
+    "items": [
+      "ko:t01",
+      "en:t02",
+      "tr-TR:t03",
+      "ar-SY:t04",
+      "it-IT:t05",
+      "ar-SY:t06",
+      "tr-TR:t07",
+      "ar-EG:t08",
+      "it-IT:t09",
+      "ko:t10",
+      "en:t11",
+      "tr-TR:t12",
+      "ar-SY:t13",
+      "ar-EG:t14",
+      "it-IT:t15"
+    ],
+    "note": "all 15 tax-module questions once, languages rotated; the localized items t05-t07 use a non-Korean asker (it-IT for the EU spouse rule, ar-SY for Kindergeld, tr-TR for foreign income). ar-EG:t08 and ar-EG:t14 replace the former ar-PS items (identical text). Not yet run with the LLM."
   }
 }

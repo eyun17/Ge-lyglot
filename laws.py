@@ -13,16 +13,21 @@ LAWS = {
     "AufenthG": "aufenthg_2004",   # Aufenthaltsgesetz (Residence Act)
     "BeschV": "beschv_2013",       # Beschäftigungsverordnung (Employment Ordinance)
     "AsylG": "asylvfg_1992",       # Asylgesetz (Asylum Act)
+    "EStG": "estg",                # Einkommensteuergesetz (Income Tax Act)
+    "AO": "ao_1977",               # Abgabenordnung (Fiscal Code)
+    "SGB IV": "sgb_4",             # Sozialgesetzbuch IV: common rules of social insurance (minijobs, employer duties)
+    "SGB VI": "sgb_6",             # Sozialgesetzbuch VI: statutory pension insurance
     "AufenthV": "aufenthv",        # Aufenthaltsverordnung (Residence Ordinance), not indexed yet
 }
 
 # The laws that are indexed and searched.
-CORPUS = ["AufenthG", "BeschV", "AsylG"]
+CORPUS = ["AufenthG", "BeschV", "AsylG", "EStG", "AO", "SGB IV", "SGB VI"]
 
 # What the corpus covers, and nearby areas it does not, as used in prompts and the app.
-TOPIC = "residence, employment and asylum law"
-TOPIC_DE = "Aufenthalts-, Beschäftigungs- und Asylrecht"
-OUT_OF_SCOPE = "tax, social insurance, citizenship, registration, benefits for asylum seekers"
+TOPIC = "residence, employment, asylum, income tax and pension insurance law"
+TOPIC_DE = "Aufenthalts-, Beschäftigungs-, Asyl-, Einkommensteuer- und Rentenversicherungsrecht"
+OUT_OF_SCOPE = ("health, unemployment and long-term care insurance, VAT, church tax, double taxation treaties, "
+                "citizenship, registration, benefits for asylum seekers")
 
 
 def corpus_names(conj: str = "and") -> str:

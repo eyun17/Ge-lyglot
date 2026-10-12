@@ -90,6 +90,23 @@ def test_eu_article_absatz_is_not_own_section():
     assert _targets("die Voraussetzungen des Artikels 12 Absatz 2 oder Absatz 3 der Richtlinie", sec="60") == []
 
 
+def test_sgb_books_and_tax_laws():
+    # the Sozialgesetzbuch cites its books by ordinal; "dieses Buches" is the own book
+    assert _targets("nach § 28e des Vierten Buches abgeführt", law="SGB VI") == [("SGB IV", "28e", None, None)]
+    assert _targets("§ 8 Absatz 1 Nummer 1 des Vierten Buches Sozialgesetzbuch", law="SGB VI") == [
+        ("SGB IV", "8", "1", None)]
+    assert _targets("§ 5 Absatz 2 dieses Buches", law="SGB VI") == [("SGB VI", "5", "2", None)]
+    assert _targets("nach § 8 SGB IV", law="EStG") == [("SGB IV", "8", None, None)]
+    assert _targets("§ 1 des Einkommensteuergesetzes", law="AO") == [("EStG", "1", None, None)]
+    assert _targets("nach § 138 der Abgabenordnung", law="EStG") == [("AO", "138", None, None)]
+    # details that used to stop the chain before the law name
+    assert _targets("nach § 180 Absatz 1 Satz 1 Nummer 2 Buchstabe a oder b der Abgabenordnung", law="EStG") == [
+        ("AO", "180", "1", None)]
+    assert _targets("nach den §§ 286 ff. der Insolvenzordnung", law="EStG")[0][0] == "Insolvenzordnung"
+    assert _targets("Beiträge nach § 168 Absatz 1 Nummer 1 oder Nummer 1d des Sechsten Buches", law="EStG") == [
+        ("SGB VI", "168", "1", None)]
+
+
 XML = """<?xml version="1.0" encoding="UTF-8"?>
 <dokumente builddate="20261001212121" doknr="BJNR0000000">
 <norm doknr="BJNR0000000"><metadaten><jurabk>AufenthG 2004</jurabk><amtabk>AufenthG</amtabk>

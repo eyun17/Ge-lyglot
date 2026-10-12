@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 
 from eval_retrieval import evaluate, is_hit, parse_gold, summarize
-from retrieval import LawIndex, tokenize
+from retrieval import index_text, LawIndex, tokenize
 
 
 class FakeEmbedder:
@@ -45,6 +45,7 @@ def _index(d):
 
 def test_parse_gold_and_hit():
     assert parse_gold("AufenthG § 16b Abs. 3") == ("AufenthG", "16b", "3")
+    assert parse_gold("SGB VI § 210 Abs. 1") == ("SGB VI", "210", "1")  # abbreviation with a space
     assert parse_gold("AufenthG § 20a") == ("AufenthG", "20a", None)
     assert is_hit(("AufenthG", "16b", None), CHUNKS[0]) and is_hit(("aufenthg", "16b", "3"), CHUNKS[1])
     assert not is_hit(("AufenthG", "16b", "3"), CHUNKS[0])
@@ -115,3 +116,10 @@ if __name__ == "__main__":
         if name.startswith("test_"):
             fn()
             print("ok", name)
+
+
+def test_index_text_uses_outline_heading_when_title_missing():
+    c = {"law": "EStG", "section": "18", "absatz": "1", "title": "", "text": "Einkünfte aus selbständiger Arbeit",
+         "gliederung": ["II. Einkommen", "c) Selbständige Arbeit (§ 2 Absatz 1 Satz 1 Nummer 3)"]}
+    assert index_text(c).startswith("EStG § 18 Abs. 1 c) Selbständige Arbeit\n")
+    assert index_text({**c, "title": "Eigener Titel"}).startswith("EStG § 18 Abs. 1 Eigener Titel\n")

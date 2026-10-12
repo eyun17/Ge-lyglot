@@ -34,10 +34,16 @@ def tokenize(s: str) -> list[str]:
     return _TOKEN.findall(s.lower())
 
 
+_GL_REF = re.compile(r"\s*\(§[^)]*\)$")
+
+
 def index_text(c: dict) -> str:
-    """Text that gets embedded / BM25-indexed: citation header + title + body."""
+    """Text that gets embedded / BM25-indexed: citation header + title + body.
+    Some sections have no title in the official XML (many in EStG); they get the nearest
+    heading of the outline instead, e.g. "Selbständige Arbeit" for EStG § 18."""
     head = f"{c['law']} § {c['section']}" + (f" Abs. {c['absatz']}" if c.get("absatz") else "")
-    return f"{head} {c.get('title', '')}\n{c['text']}"
+    title = c.get("title") or (_GL_REF.sub("", c["gliederung"][-1]) if c.get("gliederung") else "")
+    return f"{head} {title}\n{c['text']}"
 
 
 class STEmbedder:

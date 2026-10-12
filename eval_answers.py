@@ -47,7 +47,7 @@ def recall(golds: list[tuple], chunks: list[dict]) -> float | None:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     pick = ap.add_mutually_exclusive_group(required=True)
-    pick.add_argument("--pick", nargs="+", help="set:id, e.g. ko:q03 ar-PS:r16")
+    pick.add_argument("--pick", nargs="+", help="set:id, e.g. ko:q03 ar-EG:r16")
     pick.add_argument("--split", help="a named list of set:id in evalset/splits.json, e.g. dev, validation")
     ap.add_argument("--conditions", nargs="+", default=CONDITIONS, choices=CONDITIONS)
     ap.add_argument("--index", type=Path, default=Path("data/index"))

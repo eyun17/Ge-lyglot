@@ -1,11 +1,11 @@
-# Refugee and protection module — Arabic (Palestinian set) (17 items)
+# Refugee and protection module — Arabic (Egyptian set) (17 items)
 
 - Same questions, gold sections and expected behavior in every set; the questions do not mention nationality.
 - Gold sections were checked against the statute text (AufenthG, BeschV as of 2026-10-08; AsylG as of 2026-10-09) but are not yet `verified`.
 - Terms are written the way the community usually writes them (e.g. Duldung, Ausbildung, BAMF).
 - Translated from Korean; not yet reviewed by a native speaker.
 
-| id | type | expected | gold | English | Arabic (Palestinian set) |
+| id | type | expected | gold | English | Arabic (Egyptian set) |
 |---|---|---|---|---|---|
 | r01 | Single section | `answer` | AufenthG § 25 Abs. 2 | If I'm recognised as a refugee, what residence permit do I get in Germany? | إذا حصلت على الاعتراف كلاجئ، ما تصريح الإقامة الذي أحصل عليه في ألمانيا؟ |
 | r02 | Single section | `answer` | AufenthG § 36a Abs. 1 | I have subsidiary protection. Can I bring my spouse and children to Germany? | لدي حماية ثانوية. هل يمكنني لمّ شمل زوجتي أو زوجي وأطفالي في ألمانيا؟ |

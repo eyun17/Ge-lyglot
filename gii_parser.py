@@ -43,11 +43,17 @@ LAW_NAMES = {
     "Schwarzarbeitsbekämpfungsgesetz": "SchwarzArbG",
     "Arbeitnehmerüberlassungsgesetz": "AÜG",
     "Freizügigkeitsgesetz": "FreizügG/EU",
+    "Einkommensteuergesetz": "EStG",
+    "Abgabenordnung": "AO",
 }
+# The Sozialgesetzbuch is cited by book: "§ 28e des Vierten Buches (Sozialgesetzbuch)" -> SGB IV.
+SGB_BOOKS = {"Ersten": "I", "Zweiten": "II", "Dritten": "III", "Vierten": "IV", "Fünften": "V",
+             "Sechsten": "VI", "Siebten": "VII", "Achten": "VIII", "Neunten": "IX", "Zehnten": "X",
+             "Elften": "XI", "Zwölften": "XII", "Vierzehnten": "XIV"}
 
 
 # --------------------------------------------------------------------------
-# Fetch
+# Fetch snapshots
 # --------------------------------------------------------------------------
 def fetch(law: str, root: Path) -> Path:
     now = datetime.now(timezone.utc)
@@ -136,9 +142,15 @@ CHAIN_GAP = re.compile(r"[ \t]*[,;]?[ \t]*(?:und|oder|sowie|bzw\.|in Verbindung 
 # must not become bare Absatz refs
 ARTIKEL = re.compile(rf"\bArt(?:ikel[sn]?|\.)\s+\d+[a-z]?"
                      rf"(?:\s+{_ABS}\s+\d+[a-z]?(?:\s*(?:,|und|oder|bis|sowie)\s+(?:{_ABS}\s+)?\d+[a-z]?)*)?")
-T_DET = re.compile(rf"\s*{_DETKW}\s+(?:\d+[a-z]?|[a-z])\b")
+# "Satz 1", "Buchstabe a oder b", "oder Nummer 1d": details below Absatz level, skipped
+_DETVAL = r"(?:\d+[a-z]?|[a-z])\b"
+T_DET = re.compile(rf"\s*(?:(?:,|und|oder|bis)\s+)?{_DETKW}\s+{_DETVAL}"
+                   rf"(?:[ \t]*(?:,|und|oder|bis)[ \t]+[a-z]\b(?![\wäöüß]))*")
+T_FF = re.compile(r"\s*ff?\.")  # "§§ 286 ff." = "and following"
 T_DETKW = re.compile(rf"\s*{_DETKW}\b")
-T_SAME = re.compile(r"\s+(?:dieses Gesetzes|dieser Verordnung)\b")
+T_SAME = re.compile(r"\s+(?:dieses Gesetzes|dieser Verordnung|dieses Buches)\b")
+T_SGB_BOOK = re.compile(rf"\s+des\s+({'|'.join(SGB_BOOKS)})\s+Buch(?:es|s)?(?:\s+Sozialgesetzbuch)?\b")
+T_SGB_ABBR = re.compile(r"\s+SGB\s+([IVX]+)\b")
 T_LAW = re.compile(
     r"\s+(?:des|der)\s+((?:[A-ZÄÖÜ][\w/\-]*\s+){0,3}?(?=[A-ZÄÖÜ])[\w\-]*?"
     r"(?:[Gg]esetzes|[Gg]esetzbuch(?:e?s)?|[Vv]erordnung|[Oo]rdnung)(?:/EU)?)"
@@ -198,6 +210,8 @@ def parse_refs(text: str, own_law: str, own_section: str) -> list[dict]:
             if not mn:
                 break
             num, after = mn.group(1), mn.end()
+            if mf := T_FF.match(text, after):
+                after = mf.end()
             f_abs = T_ABS.match(text, after)
             f_det = T_DETKW.match(text, after)
             # Which level does this number belong to?
@@ -234,6 +248,10 @@ def parse_refs(text: str, own_law: str, own_section: str) -> list[dict]:
         law = None
         if T_SAME.match(text, pos):
             law = own_law
+        elif mb := T_SGB_BOOK.match(text, pos):
+            law = f"SGB {SGB_BOOKS[mb.group(1)]}"
+        elif mb := T_SGB_ABBR.match(text, pos):
+            law = f"SGB {mb.group(1)}"
         else:
             ml = T_LAW.match(text, pos) or T_ABBR.match(text, pos)
             if ml:

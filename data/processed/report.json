@@ -28,12 +28,48 @@
       "repealed_absaetze": 2,
       "chunks": 374,
       "sections": 114
+    },
+    "EStG": {
+      "snapshot": "2026-10-09",
+      "repealed": 18,
+      "skipped_enbez": [],
+      "duplicate_absatz": [],
+      "repealed_absaetze": 32,
+      "chunks": 994,
+      "sections": 221
+    },
+    "AO": {
+      "snapshot": "2026-10-09",
+      "repealed": 5,
+      "skipped_enbez": [],
+      "duplicate_absatz": [],
+      "repealed_absaetze": 4,
+      "chunks": 1427,
+      "sections": 496
+    },
+    "SGB IV": {
+      "snapshot": "2026-10-09",
+      "repealed": 9,
+      "skipped_enbez": [],
+      "duplicate_absatz": [],
+      "repealed_absaetze": 14,
+      "chunks": 705,
+      "sections": 201
+    },
+    "SGB VI": {
+      "snapshot": "2026-10-09",
+      "repealed": 34,
+      "skipped_enbez": [],
+      "duplicate_absatz": [],
+      "repealed_absaetze": 31,
+      "chunks": 1294,
+      "sections": 442
     }
   },
   "cross_refs": {
-    "external": 374,
-    "ok": 2474,
-    "unresolved": 28
+    "external": 1726,
+    "ok": 9047,
+    "unresolved": 158
   },
   "unresolved": [
     {
@@ -127,9 +163,9 @@
       "target": "AufenthG § 21b Abs. None"
     },
     {
-      "chunk": "AufenthG-96-1",
-      "raw": "Absatz 1a",
-      "target": "AufenthG § 96 Abs. 1a"
+      "chunk": "AufenthG-98-3",
+      "raw": "§ 99 Absatz 1 Nummer 3a Buchstabe d, Nummer 7, 10 oder 13a Satz 1 Buchstabe j",
+      "target": "AufenthG § 99 Abs. 13a"
     },
     {
       "chunk": "AufenthG-98-3",
@@ -175,6 +211,656 @@
       "chunk": "AsylG-87c-5",
       "raw": "§ 23 Absatz 1",
       "target": "AsylG § 23 Abs. 1"
+    },
+    {
+      "chunk": "EStG-2-2",
+      "raw": "§§ 4 bis 7k und 13a",
+      "target": "EStG § 7k Abs. None"
+    },
+    {
+      "chunk": "EStG-3",
+      "raw": "§ 165 Absatz 1 Satz 2",
+      "target": "EStG § 165 Abs. 1"
+    },
+    {
+      "chunk": "EStG-3",
+      "raw": "§ 3 Absatz 1 Nummer 1 Buchstabe a",
+      "target": "EStG § 3 Abs. 1"
+    },
+    {
+      "chunk": "EStG-3a-3",
+      "raw": "§ 2b",
+      "target": "EStG § 2b Abs. None"
+    },
+    {
+      "chunk": "EStG-6b-8",
+      "raw": "§ 147 Absatz 2",
+      "target": "EStG § 147 Abs. 2"
+    },
+    {
+      "chunk": "EStG-6b-8",
+      "raw": "§ 148 Absatz 1",
+      "target": "EStG § 148 Abs. 1"
+    },
+    {
+      "chunk": "EStG-10-1",
+      "raw": "§ 168 Absatz 1 Nummer 1b oder 1c",
+      "target": "EStG § 168 Abs. 1"
+    },
+    {
+      "chunk": "EStG-10-2c",
+      "raw": "§ 93c",
+      "target": "EStG § 93c Abs. None"
+    },
+    {
+      "chunk": "EStG-10-3",
+      "raw": "§ 168 Absatz 1 Nummer 1b oder 1c",
+      "target": "EStG § 168 Abs. 1"
+    },
+    {
+      "chunk": "EStG-10f-2",
+      "raw": "§ 10i",
+      "target": "EStG § 10i Abs. None"
+    },
+    {
+      "chunk": "EStG-10f-3",
+      "raw": "§ 52 Absatz 21 Satz 6",
+      "target": "EStG § 52 Abs. 21"
+    },
+    {
+      "chunk": "EStG-10g-2",
+      "raw": "§ 10h Satz 3",
+      "target": "EStG § 10h Abs. None"
+    },
+    {
+      "chunk": "EStG-10g-2",
+      "raw": "§ 10i",
+      "target": "EStG § 10i Abs. None"
+    },
+    {
+      "chunk": "EStG-13-4",
+      "raw": "§ 52 Absatz 21 Satz 4 und 6",
+      "target": "EStG § 52 Abs. 21"
+    },
+    {
+      "chunk": "EStG-32c-5",
+      "raw": "Absatz 33",
+      "target": "EStG § 32c Abs. 33"
+    },
+    {
+      "chunk": "EStG-32c-7",
+      "raw": "§ 175 Absatz 1 Satz 1 Nummer 2",
+      "target": "EStG § 175 Abs. 1"
+    },
+    {
+      "chunk": "EStG-34c-1",
+      "raw": "§ 34d Nummer 3, 4, 6, 7 und 8 Buchstabe c",
+      "target": "EStG § 34d Abs. 8"
+    },
+    {
+      "chunk": "EStG-34d",
+      "raw": "§ 34c Absatz 1 bis 5",
+      "target": "EStG § 34c Abs. 4"
+    },
+    {
+      "chunk": "EStG-37-3",
+      "raw": "§ 10h",
+      "target": "EStG § 10h Abs. None"
+    },
+    {
+      "chunk": "EStG-37-3",
+      "raw": "§ 10i",
+      "target": "EStG § 10i Abs. None"
+    },
+    {
+      "chunk": "EStG-39a-1",
+      "raw": "§§ 10e, 10f, 10g, 10h, 10i",
+      "target": "EStG § 10h Abs. None"
+    },
+    {
+      "chunk": "EStG-39a-1",
+      "raw": "§§ 10e, 10f, 10g, 10h, 10i",
+      "target": "EStG § 10i Abs. None"
+    },
+    {
+      "chunk": "EStG-39a-4",
+      "raw": "§ 10i",
+      "target": "EStG § 10i Abs. None"
+    },
+    {
+      "chunk": "EStG-39b-1",
+      "raw": "Absätze 2 bis 6",
+      "target": "EStG § 39b Abs. 4"
+    },
+    {
+      "chunk": "EStG-40a-2",
+      "raw": "§ 168 Absatz 1 Nummer 1b oder 1c",
+      "target": "EStG § 168 Abs. 1"
+    },
+    {
+      "chunk": "EStG-40a-2",
+      "raw": "§ 172 Absatz 3 oder 3a",
+      "target": "EStG § 172 Abs. 3"
+    },
+    {
+      "chunk": "EStG-40a-2",
+      "raw": "§ 172 Absatz 3 oder 3a",
+      "target": "EStG § 172 Abs. 3a"
+    },
+    {
+      "chunk": "EStG-40a-2",
+      "raw": "§ 276a Absatz 1",
+      "target": "EStG § 276a Abs. 1"
+    },
+    {
+      "chunk": "EStG-40a-2a",
+      "raw": "§ 168 Absatz 1 Nummer 1b oder 1c",
+      "target": "EStG § 168 Abs. 1"
+    },
+    {
+      "chunk": "EStG-40a-2a",
+      "raw": "§ 172 Absatz 3 oder 3a",
+      "target": "EStG § 172 Abs. 3"
+    },
+    {
+      "chunk": "EStG-40a-2a",
+      "raw": "§ 172 Absatz 3 oder 3a",
+      "target": "EStG § 172 Abs. 3a"
+    },
+    {
+      "chunk": "EStG-40a-6",
+      "raw": "§ 168 Absatz 1 Nummer 1b oder 1c",
+      "target": "EStG § 168 Abs. 1"
+    },
+    {
+      "chunk": "EStG-40a-6",
+      "raw": "§ 172 Absatz 3 oder 3a",
+      "target": "EStG § 172 Abs. 3"
+    },
+    {
+      "chunk": "EStG-40a-6",
+      "raw": "§ 172 Absatz 3 oder 3a",
+      "target": "EStG § 172 Abs. 3a"
+    },
+    {
+      "chunk": "EStG-41b-4",
+      "raw": "Absatzes 2a",
+      "target": "EStG § 41b Abs. 2a"
+    },
+    {
+      "chunk": "EStG-44-1",
+      "raw": "§ 43 Absatz 1 Satz 1 Nummer 5 bis 7 Buchstabe a und Nummer 8 bis 12",
+      "target": "EStG § 43 Abs. 6"
+    },
+    {
+      "chunk": "EStG-44-1",
+      "raw": "§ 43 Absatz 1 Satz 1 Nummer 5 bis 7 Buchstabe a und Nummer 8 bis 12",
+      "target": "EStG § 43 Abs. 7"
+    },
+    {
+      "chunk": "EStG-45a-6",
+      "raw": "Absatz 7",
+      "target": "EStG § 45a Abs. 7"
+    },
+    {
+      "chunk": "EStG-50b",
+      "raw": "§ 24c",
+      "target": "EStG § 24c Abs. None"
+    },
+    {
+      "chunk": "EStG-52-2",
+      "raw": "§ 2a Absatz 3 Satz 3, 5 und 6",
+      "target": "EStG § 2a Abs. 3"
+    },
+    {
+      "chunk": "EStG-52-2",
+      "raw": "§ 2a Absatz 4",
+      "target": "EStG § 2a Abs. 4"
+    },
+    {
+      "chunk": "EStG-52-2",
+      "raw": "§ 10d Absatz 3",
+      "target": "EStG § 10d Abs. 3"
+    },
+    {
+      "chunk": "EStG-52-3",
+      "raw": "§ 2b",
+      "target": "EStG § 2b Abs. None"
+    },
+    {
+      "chunk": "EStG-52-8c",
+      "raw": "§ 4j",
+      "target": "EStG § 4j Abs. None"
+    },
+    {
+      "chunk": "EStG-52-8c",
+      "raw": "§ 4j Absatz 2 Satz 1 und Absatz 3 Satz 2",
+      "target": "EStG § 4j Abs. 2"
+    },
+    {
+      "chunk": "EStG-52-8c",
+      "raw": "§ 4j Absatz 2 Satz 1 und Absatz 3 Satz 2",
+      "target": "EStG § 4j Abs. 3"
+    },
+    {
+      "chunk": "EStG-52-12",
+      "raw": "§ 6 Absatz 1 Nummer 3 und 3a Buchstabe e",
+      "target": "EStG § 6 Abs. 3a"
+    },
+    {
+      "chunk": "EStG-52-15b",
+      "raw": "§ 7c",
+      "target": "EStG § 7c Abs. None"
+    },
+    {
+      "chunk": "EStG-52-16b",
+      "raw": "§ 4j",
+      "target": "EStG § 4j Abs. None"
+    },
+    {
+      "chunk": "EStG-52-28",
+      "raw": "§ 20 Absatz 1 Nummer 4 Satz 2 und Absatz 2b",
+      "target": "EStG § 20 Abs. 2b"
+    },
+    {
+      "chunk": "EStG-52-30b",
+      "raw": "§ 10 Absatz 2c",
+      "target": "AO § 10 Abs. 2c"
+    },
+    {
+      "chunk": "EStG-52-44a",
+      "raw": "§ 45a Absatz 2a und 7 Satz 1",
+      "target": "EStG § 45a Abs. 7"
+    },
+    {
+      "chunk": "EStG-52-45",
+      "raw": "§ 45d Absatz 3",
+      "target": "EStG § 45d Abs. 3"
+    },
+    {
+      "chunk": "EStG-52-47a",
+      "raw": "§ 50d Absatz 1 Satz 7 und 8",
+      "target": "EStG § 50d Abs. 1"
+    },
+    {
+      "chunk": "EStG-52-50",
+      "raw": "§ 70 Absatz 4",
+      "target": "EStG § 70 Abs. 4"
+    },
+    {
+      "chunk": "EStG-52-51a",
+      "raw": "§ 95 Absatz 2 Satz 2 bis 5",
+      "target": "EStG § 95 Abs. 2"
+    },
+    {
+      "chunk": "EStG-57-1",
+      "raw": "§§ 7c, 7f, 7g, 7k und 10e",
+      "target": "EStG § 7c Abs. None"
+    },
+    {
+      "chunk": "EStG-57-1",
+      "raw": "§§ 7c, 7f, 7g, 7k und 10e",
+      "target": "EStG § 7f Abs. None"
+    },
+    {
+      "chunk": "EStG-57-1",
+      "raw": "§§ 7c, 7f, 7g, 7k und 10e",
+      "target": "EStG § 7k Abs. None"
+    },
+    {
+      "chunk": "EStG-57-2",
+      "raw": "§§ 7b und 7d",
+      "target": "EStG § 7d Abs. None"
+    },
+    {
+      "chunk": "EStG-57-4",
+      "raw": "§ 10d Absatz 2 und 3",
+      "target": "EStG § 10d Abs. 3"
+    },
+    {
+      "chunk": "EStG-65",
+      "raw": "§ 270",
+      "target": "SGB VI § 270 Abs. None"
+    },
+    {
+      "chunk": "EStG-93-4",
+      "raw": "§ 1 Absatz 1a Satz 1 Nummer 2",
+      "target": "EStG § 1 Abs. 1a"
+    },
+    {
+      "chunk": "EStG-96-7",
+      "raw": "§ 370 Absatz 1 bis 4",
+      "target": "EStG § 370 Abs. 1"
+    },
+    {
+      "chunk": "EStG-96-7",
+      "raw": "§ 370 Absatz 1 bis 4",
+      "target": "EStG § 370 Abs. 2"
+    },
+    {
+      "chunk": "EStG-96-7",
+      "raw": "§ 370 Absatz 1 bis 4",
+      "target": "EStG § 370 Abs. 3"
+    },
+    {
+      "chunk": "EStG-96-7",
+      "raw": "§ 370 Absatz 1 bis 4",
+      "target": "EStG § 370 Abs. 4"
+    },
+    {
+      "chunk": "EStG-96-7",
+      "raw": "§§ 371, 375 Absatz 1",
+      "target": "EStG § 371 Abs. None"
+    },
+    {
+      "chunk": "EStG-96-7",
+      "raw": "§ 376",
+      "target": "EStG § 376 Abs. None"
+    },
+    {
+      "chunk": "EStG-96-7",
+      "raw": "§§ 385 bis 408",
+      "target": "EStG § 385 Abs. None"
+    },
+    {
+      "chunk": "EStG-96-7",
+      "raw": "§§ 385 bis 408",
+      "target": "EStG § 408 Abs. None"
+    },
+    {
+      "chunk": "EStG-100-5",
+      "raw": "§ 370 Absatz 1 bis 4",
+      "target": "EStG § 370 Abs. 1"
+    },
+    {
+      "chunk": "EStG-100-5",
+      "raw": "§ 370 Absatz 1 bis 4",
+      "target": "EStG § 370 Abs. 2"
+    },
+    {
+      "chunk": "EStG-100-5",
+      "raw": "§ 370 Absatz 1 bis 4",
+      "target": "EStG § 370 Abs. 3"
+    },
+    {
+      "chunk": "EStG-100-5",
+      "raw": "§ 370 Absatz 1 bis 4",
+      "target": "EStG § 370 Abs. 4"
+    },
+    {
+      "chunk": "EStG-100-5",
+      "raw": "§§ 371, 375 Absatz 1",
+      "target": "EStG § 371 Abs. None"
+    },
+    {
+      "chunk": "EStG-100-5",
+      "raw": "§ 376",
+      "target": "EStG § 376 Abs. None"
+    },
+    {
+      "chunk": "EStG-100-5",
+      "raw": "§§ 385 bis 408",
+      "target": "EStG § 385 Abs. None"
+    },
+    {
+      "chunk": "EStG-100-5",
+      "raw": "§§ 385 bis 408",
+      "target": "EStG § 408 Abs. None"
+    },
+    {
+      "chunk": "EStG-110-3",
+      "raw": "§ 37 Absatz 3, 5 und 6",
+      "target": "EStG § 37 Abs. 6"
+    },
+    {
+      "chunk": "AO-93c-8",
+      "raw": "§ 51a Absatz 2c",
+      "target": "AO § 51a Abs. 2c"
+    },
+    {
+      "chunk": "AO-117b-2",
+      "raw": "§ 10 Absatz 1 Satz 2",
+      "target": "AO § 10 Abs. 1"
+    },
+    {
+      "chunk": "AO-117b-2",
+      "raw": "§ 12a Absatz 4 Satz 2",
+      "target": "AO § 12a Abs. 4"
+    },
+    {
+      "chunk": "AO-152-8",
+      "raw": "§ 41a Absatz 2 Satz 2",
+      "target": "AO § 41a Abs. 2"
+    },
+    {
+      "chunk": "SGB IV-7c-1",
+      "raw": "§ 9a",
+      "target": "SGB IV § 9a Abs. None"
+    },
+    {
+      "chunk": "SGB IV-18a-1",
+      "raw": "§ 10a",
+      "target": "SGB IV § 10a Abs. None"
+    },
+    {
+      "chunk": "SGB IV-18a-3",
+      "raw": "Absatz 2a und 2b",
+      "target": "SGB IV § 18a Abs. 2b"
+    },
+    {
+      "chunk": "SGB IV-18o",
+      "raw": "§ 136a Absatz 1 und 2",
+      "target": "SGB IV § 136a Abs. 1"
+    },
+    {
+      "chunk": "SGB IV-18o",
+      "raw": "§ 136a Absatz 1 und 2",
+      "target": "SGB IV § 136a Abs. 2"
+    },
+    {
+      "chunk": "SGB IV-18o",
+      "raw": "Absatz 3",
+      "target": "SGB IV § 18o Abs. 3"
+    },
+    {
+      "chunk": "SGB IV-28a-3",
+      "raw": "§ 134",
+      "target": "SGB IV § 134 Abs. None"
+    },
+    {
+      "chunk": "SGB IV-28e-3b",
+      "raw": "§ 6a",
+      "target": "SGB IV § 6a Abs. None"
+    },
+    {
+      "chunk": "SGB IV-28q-1a",
+      "raw": "§ 28d Absatz 1 Satz 1",
+      "target": "SGB IV § 28d Abs. 1"
+    },
+    {
+      "chunk": "SGB IV-90a-2",
+      "raw": "§ 173 Absatz 2 Satz 1 Nummer 4",
+      "target": "SGB IV § 173 Abs. 2"
+    },
+    {
+      "chunk": "SGB IV-111-1",
+      "raw": "§ 124 Satz 1",
+      "target": "SGB IV § 124 Abs. None"
+    },
+    {
+      "chunk": "SGB VI-5-2",
+      "raw": "§ 8 Absatz 3",
+      "target": "SGB VI § 8 Abs. 3"
+    },
+    {
+      "chunk": "SGB VI-21-4",
+      "raw": "§ 47b",
+      "target": "SGB VI § 47b Abs. None"
+    },
+    {
+      "chunk": "SGB VI-28-1",
+      "raw": "§ 64 Absatz 1 Nummer 2 bis 6 und Absatz 2",
+      "target": "SGB VI § 64 Abs. 1"
+    },
+    {
+      "chunk": "SGB VI-28-1",
+      "raw": "§ 64 Absatz 1 Nummer 2 bis 6 und Absatz 2",
+      "target": "SGB VI § 64 Abs. 2"
+    },
+    {
+      "chunk": "SGB VI-37",
+      "raw": "§ 2 Abs. 2",
+      "target": "SGB VI § 2 Abs. 2"
+    },
+    {
+      "chunk": "SGB VI-41-3",
+      "raw": "§ 14 Absatz 4",
+      "target": "SGB VI § 14 Abs. 4"
+    },
+    {
+      "chunk": "SGB VI-97a-2",
+      "raw": "§ 22 Nummer 1 Satz 3 Buchstabe a",
+      "target": "SGB VI § 22 Abs. None"
+    },
+    {
+      "chunk": "SGB VI-97a-2",
+      "raw": "§ 19 Absatz 2 Satz 2",
+      "target": "SGB VI § 19 Abs. 2"
+    },
+    {
+      "chunk": "SGB VI-129-1",
+      "raw": "§ 3 Abs. 3",
+      "target": "SGB VI § 3 Abs. 3"
+    },
+    {
+      "chunk": "SGB VI-154-2",
+      "raw": "§ 10a",
+      "target": "SGB VI § 10a Abs. None"
+    },
+    {
+      "chunk": "SGB VI-174-1",
+      "raw": "§§ 28d bis 28n und 28r",
+      "target": "SGB VI § 28d Abs. None"
+    },
+    {
+      "chunk": "SGB VI-174-1",
+      "raw": "§§ 28d bis 28n und 28r",
+      "target": "SGB VI § 28n Abs. None"
+    },
+    {
+      "chunk": "SGB VI-174-1",
+      "raw": "§§ 28d bis 28n und 28r",
+      "target": "SGB VI § 28r Abs. None"
+    },
+    {
+      "chunk": "SGB VI-198",
+      "raw": "§ 25 Abs. 1",
+      "target": "SGB VI § 25 Abs. 1"
+    },
+    {
+      "chunk": "SGB VI-198",
+      "raw": "§ 27 Abs. 2",
+      "target": "SGB VI § 27 Abs. 2"
+    },
+    {
+      "chunk": "SGB VI-211",
+      "raw": "§ 26 Abs. 2 und 3",
+      "target": "SGB VI § 26 Abs. 2"
+    },
+    {
+      "chunk": "SGB VI-211",
+      "raw": "§ 26 Abs. 2 und 3",
+      "target": "SGB VI § 26 Abs. 3"
+    },
+    {
+      "chunk": "SGB VI-219-1",
+      "raw": "§ 270",
+      "target": "SGB VI § 270 Abs. None"
+    },
+    {
+      "chunk": "SGB VI-229-3",
+      "raw": "§ 2 Satz 1 Nr. 1, 2 und 9 Buchstabe a",
+      "target": "SGB VI § 2 Abs. 9"
+    },
+    {
+      "chunk": "SGB VI-229-6",
+      "raw": "§ 8a",
+      "target": "SGB VI § 8a Abs. None"
+    },
+    {
+      "chunk": "SGB VI-236a-1",
+      "raw": "§ 2 Abs. 2",
+      "target": "SGB VI § 2 Abs. 2"
+    },
+    {
+      "chunk": "SGB VI-236a-2",
+      "raw": "§ 2 Abs. 2",
+      "target": "SGB VI § 2 Abs. 2"
+    },
+    {
+      "chunk": "SGB VI-236a-4",
+      "raw": "§ 2 Abs. 2",
+      "target": "SGB VI § 2 Abs. 2"
+    },
+    {
+      "chunk": "SGB VI-256a-2",
+      "raw": "§ 279b",
+      "target": "SGB VI § 279b Abs. None"
+    },
+    {
+      "chunk": "SGB VI-276b",
+      "raw": "§ 134",
+      "target": "SGB IV § 134 Abs. None"
+    },
+    {
+      "chunk": "SGB VI-282-3",
+      "raw": "§ 3 Absatz 2",
+      "target": "SGB VI § 3 Abs. 2"
+    },
+    {
+      "chunk": "SGB VI-302-6",
+      "raw": "§ 34 Absatz 2 bis 3b, 3d, 3f und 3g",
+      "target": "SGB VI § 34 Abs. 3b"
+    },
+    {
+      "chunk": "SGB VI-302-6",
+      "raw": "§ 34 Absatz 2 bis 3b, 3d, 3f und 3g",
+      "target": "SGB VI § 34 Abs. 3d"
+    },
+    {
+      "chunk": "SGB VI-302-6",
+      "raw": "§ 34 Absatz 2 bis 3b, 3d, 3f und 3g",
+      "target": "SGB VI § 34 Abs. 3f"
+    },
+    {
+      "chunk": "SGB VI-302-6",
+      "raw": "§ 34 Absatz 2 bis 3b, 3d, 3f und 3g",
+      "target": "SGB VI § 34 Abs. 3g"
+    },
+    {
+      "chunk": "SGB VI-307c-1",
+      "raw": "§ 8 Abs. 4",
+      "target": "SGB VI § 8 Abs. 4"
+    },
+    {
+      "chunk": "SGB VI-313-1",
+      "raw": "§ 34 Absatz 3c und 3d",
+      "target": "SGB VI § 34 Abs. 3c"
+    },
+    {
+      "chunk": "SGB VI-313-1",
+      "raw": "§ 34 Absatz 3c und 3d",
+      "target": "SGB VI § 34 Abs. 3d"
+    },
+    {
+      "chunk": "SGB VI-321",
+      "raw": "§ 4a Absatz 5 Satz 2",
+      "target": "SGB VI § 4a Abs. 5"
+    },
+    {
+      "chunk": "SGB VI-321",
+      "raw": "Absatz 4",
+      "target": "SGB VI § 321 Abs. 4"
     }
   ]
 }
