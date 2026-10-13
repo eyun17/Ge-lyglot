@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """gesetze-im-internet.de XML -> Absatz-level JSONL chunks with cross-references.
 
-    python gii_parser.py fetch                 # download a dated snapshot per law
-    python gii_parser.py parse                 # parse the latest snapshot of each law
-    python gii_parser.py parse --snapshot 2026-10-04
+    python -m gesetzpolyglot.gii_parser fetch                 # download a dated snapshot per law
+    python -m gesetzpolyglot.gii_parser parse                 # parse the latest snapshot of each law
+    python -m gesetzpolyglot.gii_parser parse --snapshot 2026-10-04
 
 Layout:
     data/raw/<law>/<YYYY-MM-DD>/xml.zip + manifest.json   (never overwritten)
@@ -23,7 +23,7 @@ import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from laws import CORPUS, LAWS
+from .laws import CORPUS, LAWS
 
 BASE = "https://www.gesetze-im-internet.de"
 DEFAULT_LAWS = CORPUS

@@ -56,12 +56,12 @@ Some questions point to EU law that is not in the corpus: the visa list (Regulat
 Schengen 90/180-day rule (n06, n08, n12). The expected answer covers the German law and names the EU regulation
 to consult for the rest; prompt v3 asks for exactly that.
 
-`python test_evalset.py` checks that the six files are parallel (same ids, gold sections, behavior, persona).
+`python -m pytest tests/test_evalset.py` checks that the six files are parallel (same ids, gold sections, behavior, persona).
 
 ## Splits for LLM runs
 
 [splits.json](splits.json) names small lists of `set:id` items for runs that cost API money
-(`python eval_answers.py --split validation`):
+(`python -m evaluation.eval_answers --split validation`):
 
 - `validation`: 30 of the 60 questions, half of each type, each asked in one of the six sets (5 per set)
 - `smoke`: 6 other questions, one per set, to check that a run works end to end

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Section-level retrieval recall for the single-pass baselines (conditions 1-2).
 
-    python eval_retrieval.py                       # dense + hybrid, k=8, all six language sets
-    python eval_retrieval.py --modes dense bm25 hybrid --k 5
-    python eval_retrieval.py --evalset evalset/en.jsonl
-    python eval_retrieval.py --store numpy            # exact baseline
-    python eval_retrieval.py --store chroma           # same evalset on the Chroma (HNSW) store
-    python eval_retrieval.py --translate deu_Latn      # translate each question to German first (NLLB, local)
-    python eval_retrieval.py --translate deu_Latn --fuse   # search original and translation, fuse with RRF
+    python -m evaluation.eval_retrieval                       # dense + hybrid, k=8, all six language sets
+    python -m evaluation.eval_retrieval --modes dense bm25 hybrid --k 5
+    python -m evaluation.eval_retrieval --evalset evalset/en.jsonl
+    python -m evaluation.eval_retrieval --store numpy            # exact baseline
+    python -m evaluation.eval_retrieval --store chroma           # same evalset on the Chroma (HNSW) store
+    python -m evaluation.eval_retrieval --translate deu_Latn      # translate each question to German first (NLLB, local)
+    python -m evaluation.eval_retrieval --translate deu_Latn --fuse   # search original and translation, fuse with RRF
 
 Reads one or more evalset files (default: the six language files in evalset/, the same 60 questions each);
 items with empty gold_sections are skipped.
@@ -23,9 +23,9 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-from retrieval import RRF_K, LawIndex, cite
+from gesetzpolyglot.retrieval import RRF_K, LawIndex, cite
 
-EVALSET_DIR = Path(__file__).resolve().parent / "evalset"
+EVALSET_DIR = Path(__file__).resolve().parent.parent / "evalset"
 # one file per language set, each holding the same questions (evalset v2)
 EVALSET_FILES = ("ko", "en", "de", "ar", "ar_sy", "it")
 
@@ -124,7 +124,7 @@ def main() -> None:
     args.out.mkdir(parents=True, exist_ok=True)
     queries, suffix = None, ""
     if args.translate:
-        from query_translate import translate_items
+        from evaluation.query_translate import translate_items
         queries, suffix = translate_items(items, args.translate), f"_tr-{args.translate}"
         if args.fuse:
             queries = {q: [q, t] for q, t in queries.items()}

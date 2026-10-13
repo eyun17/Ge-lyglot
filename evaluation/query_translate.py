@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Translate questions before retrieval with a local NLLB-200 model (evaluation experiment, no API).
 
-    python query_translate.py                  # translate every evalset question to German, cache the result
-    python query_translate.py --target arb_Arab # dialect / other languages -> Modern Standard Arabic
+    python -m evaluation.query_translate                  # translate every evalset question to German, cache the result
+    python -m evaluation.query_translate --target arb_Arab # dialect / other languages -> Modern Standard Arabic
 
 Used by eval_retrieval.py --translate. Translations are cached in results/translations_<target>.json,
 so the model only runs once per question.
@@ -17,7 +17,7 @@ import json
 from pathlib import Path
 
 MODEL = "facebook/nllb-200-distilled-600M"
-CACHE_DIR = Path(__file__).resolve().parent / "results"
+CACHE_DIR = Path(__file__).resolve().parent.parent / "results"
 
 # evalset "set" -> NLLB source language code; the dialects have their own codes in NLLB
 # (tr-TR, it-IT and ar-EG are sets of the archived v1 evalset)
@@ -75,7 +75,7 @@ def translate_items(items: list[dict], tgt: str = "deu_Latn") -> dict[str, str]:
 
 
 def main() -> None:
-    from eval_retrieval import EVALSET_DIR
+    from evaluation.eval_retrieval import EVALSET_DIR
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--target", default="deu_Latn", help="NLLB target language code")
     args = ap.parse_args()

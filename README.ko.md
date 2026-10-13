@@ -25,34 +25,55 @@ Ge-lyglot(GesetzPolyglot의 줄임말)은 독일에 사는 외국인에게 중�
 
 ```
 gesetze-im-internet.de XML
-        │  gii_parser.py      날짜별 스냅샷 다운로드 → Absatz 단위 청크 + 상호참조
+        │  gii_parser      날짜별 스냅샷 다운로드 → Absatz 단위 청크 + 상호참조
         ▼
 data/processed/chunks.jsonl   조문 10,029개 (AufenthG 916, AufenthV 293, BeschV 88, AsylG 374,
                               FreizügG/EU 89, StAG 84, BMG 191, EStG 994, AO 1,427,
                               SGB IV 705, SGB VI 1,294, SGB V 2,911, VVG 524, KSVG 139)
-        │  retrieval.py       bge-m3 임베딩, BM25, 벡터 저장소 (numpy | Chroma)
+        │  retrieval       bge-m3 임베딩, BM25, 벡터 저장소 (numpy | Chroma)
         ▼
 data/index/
-        │  rag.py             조건 1–3: 단일 패스 RAG + 인용 검증
-        │  agent.py           조건 4: LangGraph 에이전트
+        │  rag             조건 1–3: 단일 패스 RAG + 인용 검증
+        │  agent           조건 4: LangGraph 에이전트
         ▼
-app.py (Gradio UI) · eval_retrieval.py (검색 평가, LLM 없음) · eval_answers.py (LLM 포함 전체 평가)
+app.py (Gradio UI) · evaluation/ (검색 평가는 LLM 없이, 전체 평가는 LLM 포함)
+```
+
+```
+app.py                  Gradio 웹 앱 (실행 시작점)
+gesetzpolyglot/         시스템 본체
+  laws.py               법령 목록을 모은 한 곳
+  gii_parser.py         공식 XML 받기와 파싱
+  retrieval.py          인덱스, dense / BM25 / hybrid 검색
+  llm.py                LLM 클라이언트(OpenAI, Anthropic, Ollama)와 --provider / --model
+  prompts.py            모든 프롬프트, 모든 버전
+  rag.py                조건 1–3과 공통 답변 단계
+  agent.py              조건 4 (LangGraph)
+evaluation/             eval_retrieval.py, eval_answers.py, query_translate.py
+evalset/                평가 질문 (v2, v1은 archive/)
+review/                 번역 검토 엑셀과 스크립트
+tests/                  pytest, 모델·API 키 없이 실행
+data/                   원본 스냅샷, 파싱한 청크, 인덱스 (git 제외)
+results/                평가 결과 (git 제외)
 ```
 
 | 파일 | 역할 |
 |---|---|
-| [laws.py](laws.py) | 법령 목록을 한 곳에 모은 파일입니다. 어떤 법령이 있고 어떤 법령을 색인하는지, 프롬프트와 앱에서 코퍼스를 어떻게 설명하는지 정합니다. [법령 추가하기](#법령-추가하기) 참고. |
-| [gii_parser.py](gii_parser.py) | 법령 XML을 받아 Absatz 단위 JSONL로 파싱합니다. 원본은 `data/raw/<law>/<날짜>/`에 덮어쓰지 않고 쌓입니다. |
-| [retrieval.py](retrieval.py) | 인덱스를 만들고 dense, BM25, hybrid(RRF) 검색을 합니다. |
-| [rag.py](rag.py) | 검색 → 생성 → 인용 검증. 답변 상태는 `answer`, `refuse_out_of_scope`, `explain_without_judgment` 중 하나입니다. |
-| [agent.py](agent.py) | 질문을 하위 질문으로 나누고, 상호참조를 따라가고, 근거가 충분한지 확인해 최대 2번 다시 검색합니다. |
+| [gesetzpolyglot/laws.py](gesetzpolyglot/laws.py) | 법령 목록을 한 곳에 모은 파일입니다. 어떤 법령이 있고 어떤 법령을 색인하는지, 프롬프트와 앱에서 코퍼스를 어떻게 설명하는지 정합니다. [법령 추가하기](#법령-추가하기) 참고. |
+| [gesetzpolyglot/gii_parser.py](gesetzpolyglot/gii_parser.py) | 법령 XML을 받아 Absatz 단위 JSONL로 파싱합니다. 원본은 `data/raw/<law>/<날짜>/`에 덮어쓰지 않고 쌓입니다. |
+| [gesetzpolyglot/retrieval.py](gesetzpolyglot/retrieval.py) | 인덱스를 만들고 dense, BM25, hybrid(RRF) 검색을 합니다. |
+| [gesetzpolyglot/llm.py](gesetzpolyglot/llm.py) | LLM 클라이언트(OpenAI 호환, Anthropic, Ollama), `.env` 읽기, LLM을 쓰는 모든 스크립트가 함께 쓰는 `--provider` / `--model` 옵션 |
+| [gesetzpolyglot/prompts.py](gesetzpolyglot/prompts.py) | 모든 버전(v1–v3)의 프롬프트. `PROMPT_VERSION`으로 고릅니다. |
+| [gesetzpolyglot/rag.py](gesetzpolyglot/rag.py) | 검색 → 생성 → 인용 검증. 답변 상태는 `answer`, `refuse_out_of_scope`, `explain_without_judgment` 중 하나입니다. |
+| [gesetzpolyglot/agent.py](gesetzpolyglot/agent.py) | 질문을 하위 질문으로 나누고, 상호참조를 따라가고, 근거가 충분한지 확인해 최대 2번 다시 검색합니다. |
 | [app.py](app.py) | Gradio 웹 UI입니다. 화면은 영어이고, 요소마다 아래에 독일어가 작고 연하게 함께 나옵니다(법령의 언어가 독일어이기 때문). 답변은 질문한 언어로 나옵니다. |
-| [eval_retrieval.py](eval_retrieval.py) | 조항 단위 recall@k를 잽니다(LLM 없음). |
-| [query_translate.py](query_translate.py) | 실험용: 검색 전에 로컬 NLLB-200 모델로 질문을 번역합니다(비상업용 라이선스, 앱에서는 쓰지 않음). |
-| [llm_cli.py](llm_cli.py) | LLM을 쓰는 모든 스크립트가 함께 쓰는 `--provider` / `--model` 옵션과 `.env` 읽기 |
-| [eval_answers.py](eval_answers.py) | 골라 둔 문항에 LLM까지 포함해 끝까지 평가합니다. recall, 응답 유형, 인용, 비용을 기록합니다. |
+| [evaluation/eval_retrieval.py](evaluation/eval_retrieval.py) | 조항 단위 recall@k를 잽니다(LLM 없음). |
+| [evaluation/eval_answers.py](evaluation/eval_answers.py) | 골라 둔 문항에 LLM까지 포함해 끝까지 평가합니다. recall, 응답 유형, 인용, 비용을 기록합니다. |
+| [evaluation/query_translate.py](evaluation/query_translate.py) | 실험용: 검색 전에 로컬 NLLB-200 모델로 질문을 번역합니다(비상업용 라이선스, 앱에서는 쓰지 않음). |
 | [evalset/](evalset/) | 평가 질문입니다. 같은 60문항이 여섯 개 언어 파일에 하나씩 들어 있습니다. [evalset/README.md](evalset/README.md)와 [splits.json](evalset/splits.json) 참고. 첫 버전은 `evalset/archive/v1/`에 보관합니다. |
 | [review/](review/) | 원어민 번역 검토용 엑셀 파일(독일어, 아랍어 표준어, 시리아 방언, 이탈리아어)입니다. [make_review.py](review/make_review.py)로 만들고, 돌려받은 파일은 [apply_review.py](review/apply_review.py)로 반영합니다. |
+
+명령은 프로젝트 루트에서 모듈로 실행합니다(예: `python -m gesetzpolyglot.retrieval build`). 앱만 `python app.py`로 시작합니다.
 
 ### 비교하는 네 가지 조건
 
@@ -114,11 +135,11 @@ cp .env.example .env
 ### 1. 데이터 받기와 파싱
 
 ```bash
-python gii_parser.py fetch
+python -m gesetzpolyglot.gii_parser fetch
 ```
 
 ```bash
-python gii_parser.py parse
+python -m gesetzpolyglot.gii_parser parse
 ```
 
 파싱 결과 요약(조문 수, 해결되지 않은 상호참조)은 `data/processed/report.json`에 저장됩니다.
@@ -126,25 +147,25 @@ python gii_parser.py parse
 ### 2. 인덱스 만들기
 
 ```bash
-python retrieval.py build --store chroma
+python -m gesetzpolyglot.retrieval build --store chroma
 ```
 
 `--store`를 빼면 numpy 저장소만 만듭니다. 이미 numpy로 만든 인덱스가 있다면 임베딩을 다시 하지 않고 Chroma로 옮길 수 있습니다.
 
 ```bash
-python retrieval.py to-chroma
+python -m gesetzpolyglot.retrieval to-chroma
 ```
 
 검색만 따로 해 볼 수도 있습니다. `--law`는 메타데이터 필터입니다.
 
 ```bash
-python retrieval.py search "Zustimmung" --law BeschV --k 5
+python -m gesetzpolyglot.retrieval search "Zustimmung" --law BeschV --k 5
 ```
 
 ### 3. 질문하기
 
 ```bash
-python rag.py "유학생도 일할 수 있나요?" --condition agent
+python -m gesetzpolyglot.rag "유학생도 일할 수 있나요?" --condition agent
 ```
 
 ```bash
@@ -155,7 +176,7 @@ python app.py
 
 ### 4. LLM 고르기: API 또는 로컬
 
-LLM을 쓰는 스크립트(`app.py`, `rag.py`, `eval_answers.py`)는 모두 `--provider`와 `--model`을 받습니다. `.env`보다 우선합니다.
+LLM을 쓰는 스크립트(`app.py`, `gesetzpolyglot.rag`, `evaluation.eval_answers`)는 모두 `--provider`와 `--model`을 받습니다. `.env`보다 우선합니다.
 
 | 공급자 | 실행 위치 | 모델 설정 | 기본값 |
 |---|---|---|---|
@@ -174,7 +195,7 @@ python app.py --provider ollama
 ```
 
 ```bash
-python eval_answers.py --split validation --provider ollama --model llama3:8b
+python -m evaluation.eval_answers --split validation --provider ollama --model llama3:8b
 ```
 
 ```bash
@@ -186,7 +207,7 @@ Ollama는 OpenAI 호환 API가 아니라 자체 API로 연결합니다. 그래�
 
 ## 벡터 저장소
 
-`retrieval.py`에는 인터페이스가 같은 저장소가 두 개 있고, 어느 쪽을 쓸지는 `data/index/meta.json`의 `store` 값으로 정해집니다.
+`gesetzpolyglot/retrieval.py`에는 인터페이스가 같은 저장소가 두 개 있고, 어느 쪽을 쓸지는 `data/index/meta.json`의 `store` 값으로 정해집니다.
 
 - **NumpyStore**: `emb.npy` 전체와 코사인 유사도를 계산하는 정확 검색입니다.
 - **ChromaStore**: ChromaDB 영구 컬렉션(`data/index/chroma/`, HNSW, 코사인 거리)입니다. 각 조문에 `law`, `section`, `absatz`, `title`, `snapshot` 메타데이터가 붙어 있어 `where` 필터를 쓸 수 있습니다.
@@ -222,11 +243,11 @@ BM25는 Chroma에 없는 기능이라 항상 메모리에서 돌고, hybrid는 "
 검색 recall은 세트마다 정답 조항이 있는 56문항(전체 336개)으로 잽니다. Absatz 없이 적은 정답 조항은 그 조항의 어느 Absatz든 검색되면 찾은 것으로 셉니다.
 
 ```bash
-python eval_retrieval.py --store numpy --modes dense bm25 hybrid
+python -m evaluation.eval_retrieval --store numpy --modes dense bm25 hybrid
 ```
 
 ```bash
-python eval_retrieval.py --store chroma --modes dense bm25 hybrid
+python -m evaluation.eval_retrieval --store chroma --modes dense bm25 hybrid
 ```
 
 문항별 결과는 `results/retrieval_<store>_<mode>.jsonl`에 저장되고, v1 결과는 `results/v1/`에 있습니다.
@@ -277,10 +298,10 @@ v1에서 알게 된 것:
 
 #### 실험: 검색 전에 질문 번역하기
 
-v1에서 잰 실험입니다. [query_translate.py](query_translate.py)는 Meta의 NLLB-200(`nllb-200-distilled-600M`, 로컬, API 없음)으로 질문을 번역합니다. 이 모델에는 북부 레반트 방언(`apc_Arab`)과 이집트 방언(`arz_Arab`) 코드가 따로 있습니다. [eval_retrieval.py](eval_retrieval.py)는 번역문으로 검색하거나(`--translate deu_Latn`), 원문과 번역문을 둘 다 검색해 RRF로 합칩니다(`--fuse`).
+v1에서 잰 실험입니다. [query_translate.py](evaluation/query_translate.py)는 Meta의 NLLB-200(`nllb-200-distilled-600M`, 로컬, API 없음)으로 질문을 번역합니다. 이 모델에는 북부 레반트 방언(`apc_Arab`)과 이집트 방언(`arz_Arab`) 코드가 따로 있습니다. [eval_retrieval.py](evaluation/eval_retrieval.py)는 번역문으로 검색하거나(`--translate deu_Latn`), 원문과 번역문을 둘 다 검색해 RRF로 합칩니다(`--fuse`).
 
 ```bash
-python eval_retrieval.py --modes dense --translate deu_Latn --fuse
+python -m evaluation.eval_retrieval --modes dense --translate deu_Latn --fuse
 ```
 
 | 세트 | 원문 | 독일어 번역 | 원문 + 독일어, 결합 |
@@ -297,7 +318,7 @@ python eval_retrieval.py --modes dense --translate deu_Latn --fuse
 
 ### LLM을 쓴 답변 평가
 
-[eval_answers.py](eval_answers.py)는 LLM을 포함한 전체 파이프라인을 골라 둔 문항에 돌립니다. 조건마다 다음을 기록합니다.
+[eval_answers.py](evaluation/eval_answers.py)는 LLM을 포함한 전체 파이프라인을 골라 둔 문항에 돌립니다. 조건마다 다음을 기록합니다.
 - 답변 단계에 넘어간 조문의 recall@8
 - 답변의 응답 유형이 `expected_behavior`와 맞는지
 - 검색 결과에 없는 인용
@@ -311,16 +332,16 @@ python eval_retrieval.py --modes dense --translate deu_Latn --fuse
 아래 결과는 모두 **평가셋 v1**의 `dev`(프롬프트 v2를 만드는 데 쓴 어려운 10문항)와 `validation`(무작위 20문항)으로, 세 법령 코퍼스에서 잰 것입니다. 그 목록은 [evalset/archive/v1/splits.json](evalset/archive/v1/splits.json)에 남겨 두었습니다. 프롬프트 v3는 아직 LLM으로 돌려보지 않았습니다. v2 `validation`을 gpt-5.4-mini로 돌리면(30문항 × 4조건) v1 실행 기준 추산으로 약 $0.65가 듭니다.
 
 ```bash
-python eval_answers.py --split validation
+python -m evaluation.eval_answers --split validation
 ```
 
 ```bash
-python eval_answers.py --split smoke --prompts v2 --model gpt-5.4
+python -m evaluation.eval_answers --split smoke --prompts v2 --model gpt-5.4
 ```
 
 `--model`과 `--prompts`를 빼면 기본값(gpt-5.4-mini, v3)을 씁니다.
 
-**프롬프트 버전.** 세 버전 모두 [rag.py](rag.py)와 [agent.py](agent.py)에 있고, `PROMPT_VERSION`(또는 `--prompts`)으로 고릅니다. 기본값은 v3입니다. v3는 v2에서 두 가지를 바꿨습니다. EU·EEA 시민 질문을 거절하지 않고, 이제 코퍼스에 있는 자유이동법(FreizügG/EU)으로 답하게 합니다. 또 조항이 코퍼스 밖의 EU 법(비자 의무 국가 목록인 EU 규정 2018/1806, 솅겐 단기 체류 규칙, 망명 규정)을 가리키면, 독일 법 부분에 답하고 그 규정 이름을 밝혀 참조하라고 안내하며, 규정 내용을 일반 지식으로 채우지 않게 합니다. v3는 아직 LLM으로 돌려보지 않았습니다. v1과 비교해 v2는 다음을 지시합니다.
+**프롬프트 버전.** 세 버전 모두 [rag.py](gesetzpolyglot/rag.py)와 [agent.py](gesetzpolyglot/agent.py)에 있고, `PROMPT_VERSION`(또는 `--prompts`)으로 고릅니다. 기본값은 v3입니다. v3는 v2에서 두 가지를 바꿨습니다. EU·EEA 시민 질문을 거절하지 않고, 이제 코퍼스에 있는 자유이동법(FreizügG/EU)으로 답하게 합니다. 또 조항이 코퍼스 밖의 EU 법(비자 의무 국가 목록인 EU 규정 2018/1806, 솅겐 단기 체류 규칙, 망명 규정)을 가리키면, 독일 법 부분에 답하고 그 규정 이름을 밝혀 참조하라고 안내하며, 규정 내용을 일반 지식으로 채우지 않게 합니다. v3는 아직 LLM으로 돌려보지 않았습니다. v1과 비교해 v2는 다음을 지시합니다.
 - 적용 범위를 먼저 확인할 것. EU·EEA 시민이면 AufenthG § 1 Abs. 2를 보고, `rewrite`와 에이전트 계획 단계에도 범위 확인용 검색어를 넣습니다.
 - `explain_without_judgment`는 사용자 본인 사건의 예측을 요구할 때만 쓸 것.
 - 질문의 일부만 다룰 수 있으면 거절하지 말고 그 부분을 답할 것.
@@ -369,21 +390,21 @@ LLM 없이 같은 20문항을 검색하면 dense 0.765, hybrid 0.588입니다.
 
 ## 법령 추가하기
 
-법령 이름은 모두 [laws.py](laws.py)에서 가져옵니다. 법령을 추가하는 순서는 다음과 같습니다.
+법령 이름은 모두 [laws.py](gesetzpolyglot/laws.py)에서 가져옵니다. 법령을 추가하는 순서는 다음과 같습니다.
 
 1. `LAWS`(약칭 → gesetze-im-internet.de 주소)와 `CORPUS`에 추가합니다. 다루는 분야가 바뀌면 `TOPIC`과 `OUT_OF_SCOPE`도 고칩니다.
 2. 받고, 파싱하고, 인덱스를 다시 만듭니다.
 
 ```bash
-python gii_parser.py fetch
+python -m gesetzpolyglot.gii_parser fetch
 ```
 
 ```bash
-python gii_parser.py parse
+python -m gesetzpolyglot.gii_parser parse
 ```
 
 ```bash
-python retrieval.py build --store chroma
+python -m gesetzpolyglot.retrieval build --store chroma
 ```
 
 3. 평가를 다시 돌려 이전 코퍼스와 비교합니다.
@@ -418,7 +439,7 @@ AsylG가 이 방식으로 추가한 첫 법령이고, 이어서 EStG, AO, SGB IV
 python -m pytest -q
 ```
 
-테스트는 가짜 임베더를 쓰기 때문에 bge-m3 모델이나 API 키 없이 돌아갑니다. `test_evalset.py`는 여섯 평가셋 파일이 같은 질문(번호, 정답 조항, 기대 응답, 국적)을 담고 있는지 확인합니다.
+테스트는 가짜 임베더를 쓰기 때문에 bge-m3 모델이나 API 키 없이 돌아갑니다. `tests/test_evalset.py`는 여섯 평가셋 파일이 같은 질문(번호, 정답 조항, 기대 응답, 국적)을 담고 있는지 확인합니다.
 
 ## 면책 고지
 
@@ -434,4 +455,4 @@ GesetzPolyglot은 독일 법령 이해를 돕기 위한 연구용 시제품이�
 
 ## git에 올라가지 않는 것
 
-`data/index/`(임베딩과 Chroma 포함), `results/`, `.env`, `.venv/`는 `.gitignore`에 있습니다. 저장소를 받은 사람은 위의 1–2단계로 데이터와 인덱스를 다시 만들고, `eval_retrieval.py`와 `eval_answers.py`로 평가를 다시 돌리면 됩니다. LLM 실험에 쓴 문항 목록은 [evalset/splits.json](evalset/splits.json)에 있습니다.
+`data/index/`(임베딩과 Chroma 포함), `results/`, `.env`, `.venv/`는 `.gitignore`에 있습니다. 저장소를 받은 사람은 위의 1–2단계로 데이터와 인덱스를 다시 만들고, `evaluation.eval_retrieval`과 `evaluation.eval_answers`로 평가를 다시 돌리면 됩니다. LLM 실험에 쓴 문항 목록은 [evalset/splits.json](evalset/splits.json)에 있습니다.

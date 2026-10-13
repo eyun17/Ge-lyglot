@@ -1,7 +1,7 @@
-"""Run: python test_rag.py   (no API key, no model download)"""
+"""Run: python -m pytest tests/test_rag.py   (no API key, no model download)"""
 import tempfile
 
-from rag import RAG, detect_lang, parse_queries, parse_status, validate_citations
+from gesetzpolyglot.rag import RAG, detect_lang, parse_queries, parse_status, validate_citations
 from test_retrieval import _index
 
 
@@ -72,7 +72,7 @@ def test_answer_end_to_end():
 def test_openai_param_fallback():
     import httpx
     import openai
-    from rag import OpenAICompatLLM
+    from gesetzpolyglot.llm import OpenAICompatLLM
 
     calls = []
 
@@ -104,7 +104,7 @@ def test_load_dotenv():
     import os
     import tempfile
     from pathlib import Path
-    from rag import load_dotenv
+    from gesetzpolyglot.llm import load_dotenv
     with tempfile.TemporaryDirectory() as d:
         p = Path(d) / ".env"
         p.write_text('# comment\nTEST_KEY_A="sk-abc"\nexport TEST_KEY_B=plain  # note\nTEST_KEY_C=keep\n\n')
@@ -128,7 +128,7 @@ def test_ollama_llm(monkeypatch):
     import json as _json
     import urllib.error
     import urllib.request
-    from rag import OllamaLLM
+    from gesetzpolyglot.llm import OllamaLLM
     sent = []
 
     def fake_urlopen(req, timeout=None):
@@ -153,8 +153,8 @@ def test_ollama_llm(monkeypatch):
 
 def test_provider_and_model_from_cli(monkeypatch):
     import argparse
-    from llm_cli import add_llm_args, apply_llm_args
-    from rag import OllamaLLM, OpenAICompatLLM, llm_from_env
+    from gesetzpolyglot.llm import add_llm_args, apply_llm_args
+    from gesetzpolyglot.llm import OllamaLLM, OpenAICompatLLM, llm_from_env
     for var in ("LLM_PROVIDER", "LLM_MODEL", "OLLAMA_MODEL", "OLLAMA_URL", "OLLAMA_NUM_CTX"):
         monkeypatch.delenv(var, raising=False)
     ap = argparse.ArgumentParser()

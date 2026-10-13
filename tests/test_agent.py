@@ -1,13 +1,13 @@
-"""Run: python test_agent.py   (no API key, no model download)"""
+"""Run: python -m pytest tests/test_agent.py   (no API key, no model download)"""
 import json
 import tempfile
 from pathlib import Path
 
-import agent
-from rag import RAG
+from gesetzpolyglot import agent
+from gesetzpolyglot.rag import RAG
 
 agent.K_PER_QUERY = 1  # tiny corpus: one hit per query, so cross_refs must do the rest
-from retrieval import LawIndex
+from gesetzpolyglot.retrieval import LawIndex
 from test_retrieval import FakeEmbedder
 
 

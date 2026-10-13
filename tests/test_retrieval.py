@@ -1,12 +1,12 @@
-"""Run: python test_retrieval.py   (no model download; uses a fake embedder)"""
+"""Run: python -m pytest tests/test_retrieval.py   (no model download; uses a fake embedder)"""
 import json
 import tempfile
 from pathlib import Path
 
 import numpy as np
 
-from eval_retrieval import evaluate, is_hit, parse_gold, summarize
-from retrieval import index_text, LawIndex, tokenize
+from evaluation.eval_retrieval import evaluate, is_hit, parse_gold, summarize
+from gesetzpolyglot.retrieval import index_text, LawIndex, tokenize
 
 
 class FakeEmbedder:

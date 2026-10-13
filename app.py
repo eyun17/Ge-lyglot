@@ -6,7 +6,7 @@
     python app.py --provider ollama               # local model via Ollama (OLLAMA_MODEL, default qwen3:8b)
     python app.py --provider openai --model gpt-5.4
 
-Needs data/index (python retrieval.py build) and OPENAI_API_KEY (see rag.py).
+Needs data/index (python -m gesetzpolyglot.retrieval build) and an LLM (see gesetzpolyglot/llm.py).
 """
 from __future__ import annotations
 
@@ -18,9 +18,9 @@ from pathlib import Path
 
 import gradio as gr
 
-from laws import TOPIC, TOPIC_DE, corpus_names
-from llm_cli import add_llm_args, apply_llm_args
-from rag import CITE_RE
+from gesetzpolyglot.laws import TOPIC, TOPIC_DE, corpus_names
+from gesetzpolyglot.llm import add_llm_args, apply_llm_args
+from gesetzpolyglot.rag import CITE_RE
 
 # The German gloss is always shown: German is the language of the statutes themselves.
 # (Planned: an option to switch the main UI language; the German gloss stays.)
@@ -234,9 +234,9 @@ def main() -> None:
     apply_llm_args(args)
 
     if not (Path(args.index) / "emb.npy").exists():
-        raise SystemExit(f"index not found in {args.index}: run `python retrieval.py build` first")
-    import rag
-    from retrieval import LawIndex
+        raise SystemExit(f"index not found in {args.index}: run `python -m gesetzpolyglot.retrieval build` first")
+    from gesetzpolyglot import rag
+    from gesetzpolyglot.retrieval import LawIndex
     print("loading index and embedding model ...")
     idx = LawIndex.load(Path(args.index))
     idx.embedder  # load bge-m3 now, not on the first question

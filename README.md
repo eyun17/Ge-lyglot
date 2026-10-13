@@ -39,34 +39,55 @@ The same notice is shown in the web app, and every answer ends with a short vers
 
 ```
 gesetze-im-internet.de XML
-        │  gii_parser.py      dated snapshots → Absatz-level chunks + cross-references
+        │  gii_parser      dated snapshots → Absatz-level chunks + cross-references
         ▼
 data/processed/chunks.jsonl   10,029 chunks (AufenthG 916, AufenthV 293, BeschV 88, AsylG 374,
                               FreizügG/EU 89, StAG 84, BMG 191, EStG 994, AO 1,427,
                               SGB IV 705, SGB VI 1,294, SGB V 2,911, VVG 524, KSVG 139)
-        │  retrieval.py       bge-m3 embeddings, BM25, vector store (numpy | Chroma)
+        │  retrieval       bge-m3 embeddings, BM25, vector store (numpy | Chroma)
         ▼
 data/index/
-        │  rag.py             conditions 1–3: single-pass RAG + citation validation
-        │  agent.py           condition 4: LangGraph agent
+        │  rag             conditions 1–3: single-pass RAG + citation validation
+        │  agent           condition 4: LangGraph agent
         ▼
-app.py (Gradio UI) · eval_retrieval.py (retrieval, no LLM) · eval_answers.py (end to end, with LLM)
+app.py (Gradio UI) · evaluation/ (retrieval without LLM, end to end with LLM)
+```
+
+```
+app.py                  Gradio web app (entry point)
+gesetzpolyglot/         the system
+  laws.py               the one list of statutes
+  gii_parser.py         fetch and parse the official XML
+  retrieval.py          index, dense / BM25 / hybrid search
+  llm.py                LLM clients (OpenAI, Anthropic, Ollama) and --provider / --model
+  prompts.py            all prompts, every version
+  rag.py                conditions 1–3 and the shared answer step
+  agent.py              condition 4 (LangGraph)
+evaluation/             eval_retrieval.py, eval_answers.py, query_translate.py
+evalset/                evaluation questions (v2; v1 in archive/)
+review/                 translation review workbooks and their scripts
+tests/                  pytest, no model or API key needed
+data/                   raw snapshots, parsed chunks, index (git-ignored)
+results/                evaluation output (git-ignored)
 ```
 
 | File | Purpose |
 |---|---|
-| [laws.py](laws.py) | The one list of statutes: which laws exist, which are indexed, and how the corpus is described in prompts and the app. See [Adding a law](#adding-a-law). |
-| [gii_parser.py](gii_parser.py) | Downloads the official XML and parses it into one JSONL line per Absatz. Raw snapshots are stored under `data/raw/<law>/<date>/` and never overwritten. |
-| [retrieval.py](retrieval.py) | Builds the index; dense, BM25 and hybrid (RRF) search. |
-| [rag.py](rag.py) | Retrieve → generate → validate citations. Each answer has a status: `answer`, `refuse_out_of_scope` or `explain_without_judgment`. |
-| [agent.py](agent.py) | Splits the question into sub-questions, follows cross-references, checks whether the evidence is sufficient, and retries retrieval up to 2 times. |
+| [gesetzpolyglot/laws.py](gesetzpolyglot/laws.py) | The one list of statutes: which laws exist, which are indexed, and how the corpus is described in prompts and the app. See [Adding a law](#adding-a-law). |
+| [gesetzpolyglot/gii_parser.py](gesetzpolyglot/gii_parser.py) | Downloads the official XML and parses it into one JSONL line per Absatz. Raw snapshots are stored under `data/raw/<law>/<date>/` and never overwritten. |
+| [gesetzpolyglot/retrieval.py](gesetzpolyglot/retrieval.py) | Builds the index; dense, BM25 and hybrid (RRF) search. |
+| [gesetzpolyglot/llm.py](gesetzpolyglot/llm.py) | LLM clients (OpenAI-compatible, Anthropic, Ollama), `.env` loading and the `--provider` / `--model` options shared by every script that calls an LLM. |
+| [gesetzpolyglot/prompts.py](gesetzpolyglot/prompts.py) | Every prompt in every version (v1–v3); `PROMPT_VERSION` picks one. |
+| [gesetzpolyglot/rag.py](gesetzpolyglot/rag.py) | Retrieve → generate → validate citations. Each answer has a status: `answer`, `refuse_out_of_scope` or `explain_without_judgment`. |
+| [gesetzpolyglot/agent.py](gesetzpolyglot/agent.py) | Splits the question into sub-questions, follows cross-references, checks whether the evidence is sufficient, and retries retrieval up to 2 times. |
 | [app.py](app.py) | Gradio web UI in English, with a small German gloss under each element (German is the language of the statutes). Answers come in the language of the question. |
-| [eval_retrieval.py](eval_retrieval.py) | Section-level recall@k, no LLM. |
-| [query_translate.py](query_translate.py) | Experiment: translates questions with a local NLLB-200 model before retrieval (non-commercial license, not used by the app). |
-| [llm_cli.py](llm_cli.py) | `--provider` / `--model` options and `.env` loading, shared by every script that calls an LLM. |
-| [eval_answers.py](eval_answers.py) | End-to-end evaluation with the LLM on chosen items: recall, answer status, citations, cost. |
+| [evaluation/eval_retrieval.py](evaluation/eval_retrieval.py) | Section-level recall@k, no LLM. |
+| [evaluation/eval_answers.py](evaluation/eval_answers.py) | End-to-end evaluation with the LLM on chosen items: recall, answer status, citations, cost. |
+| [evaluation/query_translate.py](evaluation/query_translate.py) | Experiment: translates questions with a local NLLB-200 model before retrieval (non-commercial license, not used by the app). |
 | [evalset/](evalset/) | Evaluation questions: 60 questions, the same in each of six language files; see [evalset/README.md](evalset/README.md) and [splits.json](evalset/splits.json). The first version is kept in `evalset/archive/v1/`. |
 | [review/](review/) | Translation review workbooks (.xlsx) for native speakers: German, Arabic (MSA), Syrian dialect, Italian. Built by [make_review.py](review/make_review.py), returned workbooks are applied with [apply_review.py](review/apply_review.py). |
+
+Commands run from the project root as modules, e.g. `python -m gesetzpolyglot.retrieval build`; only the app is started with `python app.py`.
 
 ### The four conditions
 
@@ -128,11 +149,11 @@ cp .env.example .env
 ### 1. Fetch and parse the statutes
 
 ```bash
-python gii_parser.py fetch
+python -m gesetzpolyglot.gii_parser fetch
 ```
 
 ```bash
-python gii_parser.py parse
+python -m gesetzpolyglot.gii_parser parse
 ```
 
 A summary (chunk counts, unresolved cross-references) is written to `data/processed/report.json`.
@@ -140,25 +161,25 @@ A summary (chunk counts, unresolved cross-references) is written to `data/proces
 ### 2. Build the index
 
 ```bash
-python retrieval.py build --store chroma
+python -m gesetzpolyglot.retrieval build --store chroma
 ```
 
 Without `--store`, only the numpy store is built. An existing numpy index can be moved to Chroma without re-embedding:
 
 ```bash
-python retrieval.py to-chroma
+python -m gesetzpolyglot.retrieval to-chroma
 ```
 
 Search from the command line; `--law` is a metadata filter:
 
 ```bash
-python retrieval.py search "Zustimmung" --law BeschV --k 5
+python -m gesetzpolyglot.retrieval search "Zustimmung" --law BeschV --k 5
 ```
 
 ### 3. Ask questions
 
 ```bash
-python rag.py "Can international students work in Germany?" --condition agent
+python -m gesetzpolyglot.rag "Can international students work in Germany?" --condition agent
 ```
 
 ```bash
@@ -169,7 +190,7 @@ The app runs at http://127.0.0.1:7860; `--share` creates a temporary public link
 
 ### 4. Choose the LLM: API or local
 
-Every script that calls an LLM (`app.py`, `rag.py`, `eval_answers.py`) takes `--provider` and `--model`. They override `.env`.
+Every script that calls an LLM (`app.py`, `gesetzpolyglot.rag`, `evaluation.eval_answers`) takes `--provider` and `--model`. They override `.env`.
 
 | Provider | Runs | Model setting | Default |
 |---|---|---|---|
@@ -188,7 +209,7 @@ python app.py --provider ollama
 ```
 
 ```bash
-python eval_answers.py --split validation --provider ollama --model llama3:8b
+python -m evaluation.eval_answers --split validation --provider ollama --model llama3:8b
 ```
 
 ```bash
@@ -200,7 +221,7 @@ For Ollama the code uses its native API rather than the OpenAI-compatible one, s
 
 ## Vector stores
 
-`retrieval.py` has two stores with the same interface. Which one is used is recorded as `store` in `data/index/meta.json`.
+`gesetzpolyglot/retrieval.py` has two stores with the same interface. Which one is used is recorded as `store` in `data/index/meta.json`.
 
 - **NumpyStore**: exact search, cosine similarity against all of `emb.npy`.
 - **ChromaStore**: a persistent ChromaDB collection (`data/index/chroma/`, HNSW, cosine distance). Each chunk carries `law`, `section`, `absatz`, `title` and `snapshot` metadata, so queries can use `where` filters.
@@ -236,11 +257,11 @@ German was added as a question language: it is the language of the statutes, so 
 Retrieval recall is measured on the 56 questions per set (336 in total) that have gold sections. A gold section given without an Absatz counts as found if any Absatz of that section is retrieved.
 
 ```bash
-python eval_retrieval.py --store numpy --modes dense bm25 hybrid
+python -m evaluation.eval_retrieval --store numpy --modes dense bm25 hybrid
 ```
 
 ```bash
-python eval_retrieval.py --store chroma --modes dense bm25 hybrid
+python -m evaluation.eval_retrieval --store chroma --modes dense bm25 hybrid
 ```
 
 Per-question results are written to `results/retrieval_<store>_<mode>.jsonl`; the v1 results are kept in `results/v1/`.
@@ -291,10 +312,10 @@ What v1 showed:
 
 #### Experiment: translating the question before retrieval
 
-Measured on v1. [query_translate.py](query_translate.py) translates each question with Meta's NLLB-200 (`nllb-200-distilled-600M`, local, no API), which has its own codes for North Levantine (`apc_Arab`) and Egyptian Arabic (`arz_Arab`). [eval_retrieval.py](eval_retrieval.py) then searches the translation (`--translate deu_Latn`) or both and fuses the rankings with RRF (`--fuse`).
+Measured on v1. [query_translate.py](evaluation/query_translate.py) translates each question with Meta's NLLB-200 (`nllb-200-distilled-600M`, local, no API), which has its own codes for North Levantine (`apc_Arab`) and Egyptian Arabic (`arz_Arab`). [eval_retrieval.py](evaluation/eval_retrieval.py) then searches the translation (`--translate deu_Latn`) or both and fuses the rankings with RRF (`--fuse`).
 
 ```bash
-python eval_retrieval.py --modes dense --translate deu_Latn --fuse
+python -m evaluation.eval_retrieval --modes dense --translate deu_Latn --fuse
 ```
 
 | Set | Original | Translated to German | Original + German, fused |
@@ -311,7 +332,7 @@ Fusion closes half to three quarters of the dialect gap without hurting the othe
 
 ### Answer evaluation with the LLM
 
-[eval_answers.py](eval_answers.py) runs the whole pipeline, LLM included, on chosen items. For each condition it records the recall@8 of what the answer step receives, whether the answer's status matches `expected_behavior`, citations that are not in the retrieved text, LLM calls, latency and tokens. This costs money, so it runs on small named splits from [evalset/splits.json](evalset/splits.json):
+[eval_answers.py](evaluation/eval_answers.py) runs the whole pipeline, LLM included, on chosen items. For each condition it records the recall@8 of what the answer step receives, whether the answer's status matches `expected_behavior`, citations that are not in the retrieved text, LLM calls, latency and tokens. This costs money, so it runs on small named splits from [evalset/splits.json](evalset/splits.json):
 
 - `validation`: 30 of the 60 v2 questions, half of each type, each asked in one of the six sets (5 per set). Not run yet.
 - `smoke`: 6 other questions, one per set, to check that a run works end to end. Not run yet.
@@ -319,16 +340,16 @@ Fusion closes half to three quarters of the dialect gap without hurting the othe
 All results below were measured on **evalset v1**, with its `dev` (10 hard items used to write prompt v2) and `validation` (20 random items) splits, on the three-law corpus; those splits are kept in [evalset/archive/v1/splits.json](evalset/archive/v1/splits.json). Prompt v3 has not been run with the LLM yet. A v2 `validation` run with gpt-5.4-mini (30 items × 4 conditions) should cost about $0.65, extrapolated from the v1 runs.
 
 ```bash
-python eval_answers.py --split validation
+python -m evaluation.eval_answers --split validation
 ```
 
 ```bash
-python eval_answers.py --split smoke --prompts v2 --model gpt-5.4
+python -m evaluation.eval_answers --split smoke --prompts v2 --model gpt-5.4
 ```
 
 Without `--model` and `--prompts` it uses the defaults (gpt-5.4-mini, v3).
 
-**Prompt versions.** All three live in [rag.py](rag.py) and [agent.py](agent.py); `PROMPT_VERSION` (or `--prompts`) picks one, v3 by default. v3 is v2 with two changes: EU/EEA citizens are answered from the Freedom of Movement Act (FreizügG/EU), which is now in the corpus, instead of being refused; and when a provision points to EU law outside the corpus (the visa list, Regulation (EU) 2018/1806; the Schengen rules on short stays; the asylum regulations), the model answers the German part, names the regulation and advises the user to consult it, without filling in its content. v3 has not been run with the LLM yet. Compared with v1, v2 tells the model to check scope first (EU/EEA citizens: AufenthG § 1 Abs. 2, plus a scope query in `rewrite` and the agent's plan), to use `explain_without_judgment` only when asked to predict the user's own case, to answer the covered part of a question instead of refusing, to read each provision's Absatz, Satz and named group exactly, to say when the user's country is not in a list, and to correct wrong assumptions. A status line that does not name exactly one status is scored as `unclear` (wrong).
+**Prompt versions.** All three live in [rag.py](gesetzpolyglot/rag.py) and [agent.py](gesetzpolyglot/agent.py); `PROMPT_VERSION` (or `--prompts`) picks one, v3 by default. v3 is v2 with two changes: EU/EEA citizens are answered from the Freedom of Movement Act (FreizügG/EU), which is now in the corpus, instead of being refused; and when a provision points to EU law outside the corpus (the visa list, Regulation (EU) 2018/1806; the Schengen rules on short stays; the asylum regulations), the model answers the German part, names the regulation and advises the user to consult it, without filling in its content. v3 has not been run with the LLM yet. Compared with v1, v2 tells the model to check scope first (EU/EEA citizens: AufenthG § 1 Abs. 2, plus a scope query in `rewrite` and the agent's plan), to use `explain_without_judgment` only when asked to predict the user's own case, to answer the covered part of a question instead of refusing, to read each provision's Absatz, Satz and named group exactly, to say when the user's country is not in a list, and to correct wrong assumptions. A status line that does not name exactly one status is scored as `unclear` (wrong).
 
 **Validation** (20 items × 4 conditions = 80 answers per run):
 
@@ -369,21 +390,21 @@ Costs are API token counts times list prices (gpt-5.4: $2.50 / $15 per 1M input 
 
 ## Adding a law
 
-All statute names come from [laws.py](laws.py). To add one:
+All statute names come from [laws.py](gesetzpolyglot/laws.py). To add one:
 
 1. Add it to `LAWS` (abbreviation → gesetze-im-internet.de slug) and to `CORPUS`; update `TOPIC` and `OUT_OF_SCOPE` if the subject area changes.
 2. Fetch, parse and rebuild the index:
 
 ```bash
-python gii_parser.py fetch
+python -m gesetzpolyglot.gii_parser fetch
 ```
 
 ```bash
-python gii_parser.py parse
+python -m gesetzpolyglot.gii_parser parse
 ```
 
 ```bash
-python retrieval.py build --store chroma
+python -m gesetzpolyglot.retrieval build --store chroma
 ```
 
 3. Re-run the evaluation and compare with the previous corpus.
@@ -418,10 +439,10 @@ AsylG was the first law added this way; EStG, AO, SGB IV and SGB VI followed. Th
 python -m pytest -q
 ```
 
-Tests use a fake embedder, so they run without the bge-m3 model or an API key. `test_evalset.py` checks that the six evalset files hold the same questions (ids, gold sections, expected behavior, persona).
+Tests use a fake embedder, so they run without the bge-m3 model or an API key. `tests/test_evalset.py` checks that the six evalset files hold the same questions (ids, gold sections, expected behavior, persona).
 
 ## Not in git
 
-`data/index/` (embeddings and Chroma), `results/`, `.env` and `.venv/` are git-ignored. To reproduce, run steps 1–2 above, then `eval_retrieval.py` and `eval_answers.py`; the item lists for the LLM runs are in [evalset/splits.json](evalset/splits.json).
+`data/index/` (embeddings and Chroma), `results/`, `.env` and `.venv/` are git-ignored. To reproduce, run steps 1–2 above, then `evaluation.eval_retrieval` and `evaluation.eval_answers`; the item lists for the LLM runs are in [evalset/splits.json](evalset/splits.json).
 
 A Korean version of this README is in [README.ko.md](README.ko.md).

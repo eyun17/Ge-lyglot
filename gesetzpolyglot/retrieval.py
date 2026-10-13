@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Index and search over chunks.jsonl: dense (bge-m3), BM25, hybrid (RRF).
 
-    python retrieval.py build                          # embeds data/processed/chunks.jsonl
-    python retrieval.py build --store chroma           # same, plus a Chroma vector store
-    python retrieval.py to-chroma                      # Chroma from an existing emb.npy (no re-embedding)
-    python retrieval.py search "Blaue Karte Gehalt"    # --mode dense|bm25|hybrid, --k 8, --law BeschV
+    python -m gesetzpolyglot.retrieval build                          # embeds data/processed/chunks.jsonl
+    python -m gesetzpolyglot.retrieval build --store chroma           # same, plus a Chroma vector store
+    python -m gesetzpolyglot.retrieval to-chroma                      # Chroma from an existing emb.npy (no re-embedding)
+    python -m gesetzpolyglot.retrieval search "Blaue Karte Gehalt"    # --mode dense|bm25|hybrid, --k 8, --law BeschV
 
 Dense search runs on one of two vector stores; BM25 always runs in memory.
     numpy   exact cosine over emb.npy (brute force; fine for ~1k chunks)
@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 from rank_bm25 import BM25Okapi
 
-from laws import CORPUS
+from .laws import CORPUS
 
 MODEL = "BAAI/bge-m3"
 RRF_K = 60

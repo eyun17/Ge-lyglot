@@ -5,3 +5,5 @@ results/
 .env
 .idea/
 .DS_Store
+.pytest_cache/
+.venv-py39-old/

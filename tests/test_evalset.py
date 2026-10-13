@@ -1,8 +1,8 @@
-"""Run: python test_evalset.py   (no model needed). The six evalset files must hold the same questions:
+"""Run: python -m pytest tests/test_evalset.py   (no model needed). The six evalset files must hold the same questions:
 same ids, gold sections and expected behavior."""
 import json
 
-from eval_retrieval import EVALSET_DIR, EVALSET_FILES, parse_gold
+from evaluation.eval_retrieval import EVALSET_DIR, EVALSET_FILES, parse_gold
 
 FIELDS = ("old_id", "topic", "type", "expected_behavior", "gold_sections", "persona_country", "persona_group")
 GROUPS = {"eu", "non_eu", "none", "both", "unclear"}

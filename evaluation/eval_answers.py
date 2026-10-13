@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """End-to-end evaluation with the LLM: retrieval recall, answer status and citations, per condition.
 
-    python eval_answers.py --pick ko:n03 it:n36 ar-SY:n59      # set:id, from all evalset/*.jsonl files
-    python eval_answers.py --pick ko:n03 --conditions rewrite agent
-    python eval_answers.py --pick ko:n03 --model gpt-5.4          # overrides LLM_MODEL from .env
-    python eval_answers.py --split validation --provider ollama   # local model (OLLAMA_MODEL, default qwen3:8b)
-    python eval_answers.py --split validation --prompts v1        # items from evalset/splits.json
+    python -m evaluation.eval_answers --pick ko:n03 it:n36 ar-SY:n59      # set:id, from all evalset/*.jsonl files
+    python -m evaluation.eval_answers --pick ko:n03 --conditions rewrite agent
+    python -m evaluation.eval_answers --pick ko:n03 --model gpt-5.4          # overrides LLM_MODEL from .env
+    python -m evaluation.eval_answers --split validation --provider ollama   # local model (OLLAMA_MODEL, default qwen3:8b)
+    python -m evaluation.eval_answers --split validation --prompts v1        # items from evalset/splits.json
 
 Unlike eval_retrieval.py this calls the LLM (costs money). Per question and condition it records
     recall@8        gold sections in the first 8 chunks handed to the answer step
@@ -23,9 +23,9 @@ import os
 import time
 from pathlib import Path
 
-from eval_retrieval import EVALSET_DIR, is_hit, parse_gold
-from llm_cli import add_llm_args, apply_llm_args
-from retrieval import LawIndex, cite
+from evaluation.eval_retrieval import EVALSET_DIR, is_hit, parse_gold
+from gesetzpolyglot.llm import add_llm_args, apply_llm_args
+from gesetzpolyglot.retrieval import LawIndex, cite
 
 CONDITIONS = ["dense", "hybrid", "rewrite", "agent"]
 
@@ -61,8 +61,9 @@ def main() -> None:
     apply_llm_args(args)
     if args.prompts:
         os.environ["PROMPT_VERSION"] = args.prompts
-    import rag as rag_module  # after the environment is set: prompts are chosen at import
-    from rag import RAG, llm_from_env
+    # after the environment is set: prompts are chosen at import
+    from gesetzpolyglot import prompts
+    from gesetzpolyglot.rag import RAG, llm_from_env
     if args.split:
         splits = json.loads((EVALSET_DIR / "splits.json").read_text(encoding="utf-8"))
         args.pick = splits[args.split]["items"]
@@ -103,7 +104,7 @@ def main() -> None:
                     "citations": r["citations"], "invalid": r["invalid_citations"],
                     "queries": queries, "llm_calls": r["llm_calls"], "latency_s": r["latency_s"],
                     "tokens": used, "answer": r["answer"], "model": r["model"],
-                    "prompt_version": rag_module.PROMPT_VERSION,
+                    "prompt_version": prompts.PROMPT_VERSION,
                 }
                 rows.append(row)
                 f.write(json.dumps(row, ensure_ascii=False) + "\n")
@@ -126,7 +127,7 @@ def main() -> None:
               f"{sum(r['status_ok'] for r in rs):>6}/{len(rs):<2} {sum(len(r['invalid']) for r in rs):>7} "
               f"{sum(r['llm_calls'] for r in rs):>5} {sum(r['latency_s'] for r in rs) / len(rs):>5.1f}  "
               f"{tin:,}/{tout:,}")
-    print(f"model {llm.name}, prompts {rag_module.PROMPT_VERSION}, total tokens: {dict(llm.usage)}")
+    print(f"model {llm.name}, prompts {prompts.PROMPT_VERSION}, total tokens: {dict(llm.usage)}")
 
 
 if __name__ == "__main__":

@@ -23,9 +23,10 @@ from typing import TypedDict
 import numpy as np
 from langgraph.graph import END, START, StateGraph
 
-from laws import CORPUS, OUT_OF_SCOPE, corpus_names
-from rag import PROMPT_VERSION, RRF_K, CountingLLM, detect_lang, finish
-from retrieval import cite
+from .laws import CORPUS
+from .prompts import CHECK_SYSTEM, PLAN_SYSTEM
+from .rag import RRF_K, CountingLLM, detect_lang, finish
+from .retrieval import cite
 
 K_PER_QUERY = 5      # hits per search query
 CONTEXT_K = 12       # chunks handed to the answer step
@@ -34,32 +35,6 @@ MAX_NEW_REFS = 6     # at most this many chunks added via cross_refs per round
 SECTION_REF_TOP = 2  # a ref to a whole § brings in its 2 most relevant Absätze
 MAX_RETRIES = 2      # extra retrieve rounds after the first
 CORPUS_LAWS = set(CORPUS)
-
-PLAN_SYSTEM = f"""You prepare retrieval over the German statutes {corpus_names()}.
-Split the user's question into 1 to 3 legal sub-questions (in English). For each, write one short \
-German search query using statutory terminology (e.g. "Niederlassungserlaubnis Blaue Karte EU \
-Monate" rather than "permanent residence").
-If the user says they are a citizen of an EU/EEA country or Switzerland, add one query about \
-whether the Residence Act applies to them, e.g. "Anwendungsbereich Aufenthaltsgesetz Unionsbürger \
-Freizügigkeitsgesetz".
-Return only JSON: {{"sub_questions": ["...", "..."], "queries": ["...", "..."]}}"""
-
-# v1: without the EU scope query
-PLAN_SYSTEM_V1 = f"""You prepare retrieval over the German statutes {corpus_names()}.
-Split the user's question into 1 to 3 legal sub-questions (in English). For each, write one short \
-German search query using statutory terminology (e.g. "Niederlassungserlaubnis Blaue Karte EU \
-Monate" rather than "permanent residence").
-Return only JSON: {{"sub_questions": ["...", "..."], "queries": ["...", "..."]}}"""
-if PROMPT_VERSION == "v1":
-    PLAN_SYSTEM = PLAN_SYSTEM_V1
-
-CHECK_SYSTEM = f"""You check whether retrieved statute excerpts are enough to answer some sub-questions.
-For each sub-question decide whether the excerpts contain the rule that answers it.
-If something is missing, give up to 2 short German search queries for exactly the missing rule.
-If the question is about a field these statutes do not cover ({OUT_OF_SCOPE}, ...), \
-more searching will not help: answer sufficient = true.
-Return only JSON: {{"sufficient": true or false, "missing_queries": ["..."]}}"""
-
 
 class AgentState(TypedDict, total=False):
     question: str

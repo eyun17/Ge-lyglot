@@ -3,7 +3,8 @@
 Adding a law to the corpus:
     1. add it to LAWS (abbreviation -> gesetze-im-internet.de slug) and to CORPUS
     2. update TOPIC and OUT_OF_SCOPE below if the subject area changes
-    3. python gii_parser.py fetch && python gii_parser.py parse && python retrieval.py build --store chroma
+    3. python -m gesetzpolyglot.gii_parser fetch && python -m gesetzpolyglot.gii_parser parse &&
+       python -m gesetzpolyglot.retrieval build --store chroma
 Everything else (parser defaults, --law filters, prompts, citation parsing, app text) reads from here.
 """
 from __future__ import annotations

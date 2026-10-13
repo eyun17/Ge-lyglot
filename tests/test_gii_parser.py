@@ -1,4 +1,4 @@
-"""Run: python test_gii_parser.py   (or: pytest test_gii_parser.py)
+"""Run: python -m pytest tests/test_gii_parser.py   (or: pytest test_gii_parser.py)
 
 Uses a synthetic XML in the gesetze-im-internet.de schema, not the real law text.
 """
@@ -7,7 +7,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from gii_parser import parse_law, parse_refs, resolve
+from gesetzpolyglot.gii_parser import parse_law, parse_refs, resolve
 
 
 def _targets(text, law="AufenthG", sec="99"):

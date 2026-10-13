@@ -1,0 +1,9 @@
+[project]
+name = "gesetzpolyglot"
+version = "0.2.0"
+description = "Multilingual RAG over German federal statutes for foreigners living in Germany"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "tests"]
