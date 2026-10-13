@@ -80,7 +80,7 @@ results/                evaluation output (git-ignored)
 | [gesetzpolyglot/prompts.py](gesetzpolyglot/prompts.py) | Every prompt in every version (v1–v3); `PROMPT_VERSION` picks one. |
 | [gesetzpolyglot/rag.py](gesetzpolyglot/rag.py) | Retrieve → generate → validate citations. Each answer has a status: `answer`, `refuse_out_of_scope` or `explain_without_judgment`. |
 | [gesetzpolyglot/agent.py](gesetzpolyglot/agent.py) | Splits the question into sub-questions, follows cross-references, checks whether the evidence is sufficient, and retries retrieval up to 2 times. |
-| [app.py](app.py) | Gradio web UI in English, with a small German gloss under each element (German is the language of the statutes). Answers come in the language of the question. |
+| [app.py](app.py) | Gradio web UI in English, with a small German gloss under each element (German is the language of the statutes). Answers come in the language of the question. A Sources panel lists every statute with its download date and last amendment. |
 | [evaluation/eval_retrieval.py](evaluation/eval_retrieval.py) | Section-level recall@k, no LLM. |
 | [evaluation/eval_answers.py](evaluation/eval_answers.py) | End-to-end evaluation with the LLM on chosen items: recall, answer status, citations, cost. |
 | [evaluation/query_translate.py](evaluation/query_translate.py) | Experiment: translates questions with a local NLLB-200 model before retrieval (non-commercial license, not used by the app). |

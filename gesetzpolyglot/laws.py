@@ -27,6 +27,25 @@ LAWS = {
     "AufenthV": "aufenthv",        # Aufenthaltsverordnung (Residence Ordinance): visas, visa-free entry
 }
 
+# Full titles, shown in the app's source list.
+TITLES = {
+    "AufenthG": ("Aufenthaltsgesetz", "Residence Act"),
+    "AufenthV": ("Aufenthaltsverordnung", "Residence Ordinance"),
+    "BeschV": ("Beschäftigungsverordnung", "Employment Ordinance"),
+    "AsylG": ("Asylgesetz", "Asylum Act"),
+    "FreizügG/EU": ("Freizügigkeitsgesetz/EU", "Freedom of Movement Act/EU"),
+    "StAG": ("Staatsangehörigkeitsgesetz", "Nationality Act"),
+    "BMG": ("Bundesmeldegesetz", "Federal Registration Act"),
+    "EStG": ("Einkommensteuergesetz", "Income Tax Act"),
+    "AO": ("Abgabenordnung", "Fiscal Code"),
+    "SGB IV": ("Sozialgesetzbuch Viertes Buch", "Social Code IV: common rules of social insurance"),
+    "SGB VI": ("Sozialgesetzbuch Sechstes Buch", "Social Code VI: pension insurance"),
+    "SGB V": ("Sozialgesetzbuch Fünftes Buch", "Social Code V: health insurance"),
+    "VVG": ("Versicherungsvertragsgesetz", "Insurance Contract Act"),
+    "KSVG": ("Künstlersozialversicherungsgesetz", "Artists' Social Insurance Act"),
+}
+assert set(TITLES) == set(LAWS), "every law needs a title"
+
 # The laws that are indexed and searched.
 CORPUS = ["AufenthG", "AufenthV", "BeschV", "AsylG", "FreizügG/EU", "StAG", "BMG",
           "EStG", "AO", "SGB IV", "SGB VI", "SGB V", "VVG", "KSVG"]
@@ -35,7 +54,7 @@ CORPUS = ["AufenthG", "AufenthV", "BeschV", "AsylG", "FreizügG/EU", "StAG", "BM
 TOPIC = ("residence, EU free movement, employment, asylum, citizenship, registration, income tax, "
          "pension, health and artists' social insurance law")
 TOPIC_DE = ("Aufenthalts-, Freizügigkeits-, Beschäftigungs-, Asyl-, Staatsangehörigkeits-, Melde-, Einkommensteuer-, "
-            "Renten- und Krankenversicherungsrecht")
+            "Renten-, Kranken- und Künstlersozialversicherungsrecht")
 OUT_OF_SCOPE = ("unemployment and long-term care insurance, VAT, church tax, the broadcasting fee (Rundfunkbeitrag), "
                 "double taxation treaties, benefits for asylum seekers")
 

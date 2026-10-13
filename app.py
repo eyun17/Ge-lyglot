@@ -18,7 +18,7 @@ from pathlib import Path
 
 import gradio as gr
 
-from gesetzpolyglot.laws import TOPIC, TOPIC_DE, corpus_names
+from gesetzpolyglot.laws import CORPUS, LAWS, TITLES, TOPIC, TOPIC_DE, corpus_names
 from gesetzpolyglot.llm import add_llm_args, apply_llm_args
 from gesetzpolyglot.rag import CITE_RE
 
@@ -74,6 +74,35 @@ DISCLAIMER_DE = (
     "Soweit gesetzlich zulässig, übernimmt der Autor keine Haftung für Entscheidungen oder Handlungen auf "
     "Grundlage dieser Antworten, für übermäßiges Vertrauen in sie oder für eine missbräuchliche Verwendung "
     "dieses Werkzeugs.")
+
+
+SOURCE_EN = (
+    "The statute texts are the consolidated versions published by the German Federal Ministry of Justice "
+    "together with juris GmbH on [gesetze-im-internet.de](https://www.gesetze-im-internet.de), downloaded as XML "
+    "on the dates below and split into paragraphs (Absätze). These consolidated texts are not the official "
+    "version: only the Federal Law Gazette (Bundesgesetzblatt) is legally binding. Amendments after the download "
+    "date are not included. EU regulations (visa list, Schengen rules, asylum regulations) are not in the corpus.")
+SOURCE_DE = (
+    "Die Gesetzestexte sind die konsolidierten Fassungen, die das Bundesministerium der Justiz gemeinsam mit der "
+    "juris GmbH auf gesetze-im-internet.de veröffentlicht. Sie wurden an den unten genannten Tagen als XML "
+    "heruntergeladen und in Absätze zerlegt. Diese Fassungen sind nicht amtlich: rechtsverbindlich ist nur das "
+    "Bundesgesetzblatt. Spätere Änderungen sind nicht enthalten. EU-Verordnungen sind nicht enthalten.")
+
+
+def source_table(chunks: list[dict]) -> str:
+    """One row per law in the index: title, download date, last amendment as stated in the XML."""
+    per_law: dict[str, dict] = {}
+    for c in chunks:
+        per_law.setdefault(c["law"], c)
+    rows = ["| Law / Gesetz | Downloaded / Abgerufen | Last amended (as stated) / Stand |", "|---|---|---|"]
+    for law in CORPUS:
+        if law not in per_law:
+            continue
+        c, (title_de, title_en) = per_law[law], TITLES[law]
+        url = f"https://www.gesetze-im-internet.de/{LAWS[law]}/"
+        stand = (c.get("stand") or "–").replace("|", "/")
+        rows.append(f"| [{law}]({url}) {title_de}<br>{de(title_en)} | {c.get('snapshot', '–')} | {stand} |")
+    return "\n".join(rows)
 
 
 def linkify(text: str, retrieved: list[dict], valid: set[str]) -> str:
@@ -175,7 +204,7 @@ def load_examples(path: Path, n: int = 8) -> list[list[str]]:
     return [q for qs in per_type.values() for q in qs[:k]]
 
 
-def build_ui(answer_fn, examples: list[list[str]]) -> gr.Blocks:
+def build_ui(answer_fn, examples: list[list[str]], sources_md: str = "") -> gr.Blocks:
     def run(question: str, condition_label: str):
         question = (question or "").strip()
         if not question:
@@ -186,7 +215,7 @@ def build_ui(answer_fn, examples: list[list[str]]) -> gr.Blocks:
         except Exception as e:  # show errors in the UI instead of a blank box
             return bi(f"❌ Error: `{type(e).__name__}: {e}`", "Ein Fehler ist aufgetreten."), "", "", {}
 
-    with gr.Blocks(title="GesetzPolyglot") as demo:
+    with gr.Blocks(title="🇩🇪Gesetz Polyglot🤖") as demo:
         gr.Markdown(
             "## GesetzPolyglot\n"
             + f"Ask about German {TOPIC} in your language."
@@ -195,7 +224,9 @@ def build_ui(answer_fn, examples: list[list[str]]) -> gr.Blocks:
                  "Ask in English, German, Korean, Turkish, Arabic or Italian. **This is not legal advice.**",
                  f"Die Antworten beruhen auf dem Gesetzestext von {corpus_names('und')}. Fragen sind auf "
                  "Englisch, Deutsch, Koreanisch, Türkisch, Arabisch oder Italienisch möglich. "
-                 "<b>Keine Rechtsberatung.</b>"))
+                 "<b>Keine Rechtsberatung.</b>")
+            + "<br>" + bi("Source: official consolidated texts from gesetze-im-internet.de (see Sources below).",
+                          "Quelle: konsolidierte Texte von gesetze-im-internet.de (siehe Quellen unten)."))
         with gr.Accordion("⚠️ Disclaimer — please read / Haftungsausschluss — bitte lesen", open=True):
             gr.Markdown(bi(DISCLAIMER_EN, DISCLAIMER_DE))
         with gr.Row():
@@ -216,7 +247,8 @@ def build_ui(answer_fn, examples: list[list[str]]) -> gr.Blocks:
             with gr.Accordion("Raw trace (JSON)", open=False):
                 tr = gr.JSON()
         gr.Examples(examples, inputs=q, label="Example questions from the eval set / Beispielfragen aus dem Evaluationsset")
-        gr.Markdown("---\n" + bi(DISCLAIMER_EN, DISCLAIMER_DE))
+        with gr.Accordion("📚 Sources / Quellen", open=False):
+            gr.Markdown(bi(SOURCE_EN, SOURCE_DE) + "\n\n" + sources_md)
         btn.click(run, [q, cond], [out, src, steps, tr])
         q.submit(run, [q, cond], [out, src, steps, tr])
     return demo
@@ -243,7 +275,8 @@ def main() -> None:
     rag._PIPELINE = rag.RAG(idx, rag.llm_from_env())
     print(f"ready: {len(idx.chunks)} chunks, vector store {idx.store.name}, model {rag._PIPELINE.llm.name}")
 
-    demo = build_ui(lambda qq, c: rag.answer(qq, c, args.index), load_examples(Path(args.evalset)))
+    demo = build_ui(lambda qq, c: rag.answer(qq, c, args.index), load_examples(Path(args.evalset)),
+                    source_table(idx.chunks))
     demo.launch(share=args.share, server_port=args.port)
 
 

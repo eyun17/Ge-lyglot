@@ -51,6 +51,8 @@ SETS = {
                   "more natural, say so in Comment."],
         "ai_note": ("هذه الجمل مسودة أولى كتبها نموذج ذكاء اصطناعي (Claude Opus 5.5)، وقد تحتوي على أخطاء أو "
                     "صياغات غير طبيعية، فلا تتردد في تصحيحها كما تكتبها أنت."),
+        "mixing": ("مهم: يمكن استخدام كلمات ألمانية (مثل Ausbildung أو Anmeldung) إذا كان الناس يستخدمونها فعلاً، "
+                   "لكن إذا وُجد تعبير بالعربية فالأفضل استخدامه."),
         "summary": ("ملخص: في ورقة Questions، اقرأ الجملة الإنجليزية ثم الترجمة العربية. إذا كانت صحيحة وطبيعية، "
                     "اختر ✓ في عمود OK? ولا تكتب شيئاً آخر. إذا كان فيها خطأ أو كانت غير طبيعية، اكتب صيغتك في عمود "
                     "Correction. لا تغيّر المعنى، صحّح اللغة فقط، وأبقِ الأسئلة بالفصحى. شكراً لك!"),
@@ -60,10 +62,11 @@ SETS = {
         "msa": True,
         "extra": ["These questions are written in Syrian (Levantine) colloquial Arabic on purpose, the way people type "
                   "in a chat. Correct them to how you would actually write it; any Syrian city's dialect is fine.",
-                  "Mixing in German words (Ausbildung, Duldung) is fine if people really do that.",
                   "The column 'MSA (reference only)' shows the standard Arabic version; you don't need to review it."],
         "ai_note": ("هالجمل مسودة أولى كتبها نموذج ذكاء اصطناعي (Claude Opus 5.5)، وممكن يكون فيها غلطات أو حكي "
                     "مو طبيعي، فصحّحها براحتك متل ما بتكتبها إنت."),
+        "mixing": ("مهم: عادي تستخدم كلمات ألمانية (متل Ausbildung أو Anmeldung) إذا الناس فعلاً بيحكوها هيك، "
+                   "بس إذا في كلمة بالعربي، الأحسن تستخدمها."),
         "summary": ("ملخص: هالأسئلة مكتوبة باللهجة السورية عن قصد، متل ما الناس بتكتب بالشات. إذا السؤال طبيعي، "
                     "اختار ✓ بعمود OK?. إذا مو طبيعي، اكتب كيف كنت رح تكتبه بعمود Correction. "
                     "ما تغيّر المعنى. عمود الفصحى للمرجع بس. شكراً!"),
@@ -74,6 +77,8 @@ SETS = {
                   "If a neutral or feminine form would be more natural, say so in Comment."],
         "ai_note": ("Queste frasi sono una prima bozza scritta da un modello di intelligenza artificiale (Claude Opus 5.5): "
                     "possono contenere errori o suonare poco naturali, quindi correggile liberamente, come le scriveresti tu."),
+        "mixing": ("Importante: puoi usare parole tedesche (per esempio Ausbildung o Anmeldung) se le persone le usano "
+                   "davvero, ma se esiste un'espressione in italiano, è meglio usarla."),
         "summary": ("Riassunto: nel foglio Questions leggi la frase in inglese e la traduzione italiana. Se è corretta e "
                     "suona naturale, scegli ✓ nella colonna OK? e non scrivere altro. Se c'è un errore o non suona "
                     "naturale, scrivi la tua versione nella colonna Correction. Non cambiare il significato, correggi "
@@ -95,6 +100,8 @@ SETS = {
 }
 
 HEADER_FILL = PatternFill("solid", fgColor="DDE6F0")
+KEY = Font(bold=True, color="C00000")
+KEY_FILL = PatternFill("solid", fgColor="FFF2CC")
 WRAP = Alignment(wrap_text=True, vertical="top")
 RTL = Alignment(wrap_text=True, vertical="top", horizontal="right", readingOrder=2)
 
@@ -129,6 +136,8 @@ def instructions(ws, cfg: dict, n: int) -> None:
         ("Please check especially", Font(bold=True)),
         ("• Words for German offices and permits: use the words people in your community actually use. "
          "Please do not add the German word in parentheses.", None),
+        *([("• IMPORTANT: Mixing in German words (Ausbildung, Anmeldung) is fine if people really do that. But if "
+             "there is an expression in your language, use it preferably.", KEY)] if cfg.get("mixing") else []),
         ("• Rows marked 🌍 name the asker's nationality. Check that this sounds right.", None),
         ("• Everyday wording is better than formal or legal wording.", None),
         *[("• " + e, None) for e in cfg["extra"]],
@@ -138,12 +147,15 @@ def instructions(ws, cfg: dict, n: int) -> None:
         ("", None),
         (cfg["ai_note"], Font(bold=True)),
         (cfg["summary"], None),
+        *([(cfg["mixing"], KEY)] if cfg.get("mixing") else []),
     ]
     for i, (text, font) in enumerate(lines, 1):
         c = ws.cell(row=i, column=1, value=text)
-        c.alignment = RTL if (cfg["rtl"] and text in (cfg["summary"], cfg["ai_note"])) else WRAP
+        c.alignment = RTL if (cfg["rtl"] and text in (cfg["summary"], cfg["ai_note"], cfg.get("mixing"))) else WRAP
         if font:
             c.font = font
+        if font is KEY:  # the most important rule for translations: highlight it
+            c.fill = KEY_FILL
     ws.column_dimensions["A"].width = 110
 
 

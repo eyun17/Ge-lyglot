@@ -66,7 +66,7 @@ results/                평가 결과 (git 제외)
 | [gesetzpolyglot/prompts.py](gesetzpolyglot/prompts.py) | 모든 버전(v1–v3)의 프롬프트. `PROMPT_VERSION`으로 고릅니다. |
 | [gesetzpolyglot/rag.py](gesetzpolyglot/rag.py) | 검색 → 생성 → 인용 검증. 답변 상태는 `answer`, `refuse_out_of_scope`, `explain_without_judgment` 중 하나입니다. |
 | [gesetzpolyglot/agent.py](gesetzpolyglot/agent.py) | 질문을 하위 질문으로 나누고, 상호참조를 따라가고, 근거가 충분한지 확인해 최대 2번 다시 검색합니다. |
-| [app.py](app.py) | Gradio 웹 UI입니다. 화면은 영어이고, 요소마다 아래에 독일어가 작고 연하게 함께 나옵니다(법령의 언어가 독일어이기 때문). 답변은 질문한 언어로 나옵니다. |
+| [app.py](app.py) | Gradio 웹 UI입니다. 화면은 영어이고, 요소마다 아래에 독일어가 작고 연하게 함께 나옵니다(법령의 언어가 독일어이기 때문). 답변은 질문한 언어로 나옵니다. 출처(Sources) 패널에 법령마다 다운로드 날짜와 마지막 개정 정보를 보여 줍니다. |
 | [evaluation/eval_retrieval.py](evaluation/eval_retrieval.py) | 조항 단위 recall@k를 잽니다(LLM 없음). |
 | [evaluation/eval_answers.py](evaluation/eval_answers.py) | 골라 둔 문항에 LLM까지 포함해 끝까지 평가합니다. recall, 응답 유형, 인용, 비용을 기록합니다. |
 | [evaluation/query_translate.py](evaluation/query_translate.py) | 실험용: 검색 전에 로컬 NLLB-200 모델로 질문을 번역합니다(비상업용 라이선스, 앱에서는 쓰지 않음). |
