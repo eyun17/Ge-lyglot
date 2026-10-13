@@ -45,6 +45,9 @@ LAW_NAMES = {
     "Freizügigkeitsgesetz": "FreizügG/EU",
     "Einkommensteuergesetz": "EStG",
     "Abgabenordnung": "AO",
+    "Bundesmeldegesetz": "BMG",
+    "Versicherungsvertragsgesetz": "VVG",
+    "Künstlersozialversicherungsgesetz": "KSVG",
 }
 # The Sozialgesetzbuch is cited by book: "§ 28e des Vierten Buches (Sozialgesetzbuch)" -> SGB IV.
 SGB_BOOKS = {"Ersten": "I", "Zweiten": "II", "Dritten": "III", "Vierten": "IV", "Fünften": "V",
@@ -55,9 +58,18 @@ SGB_BOOKS = {"Ersten": "I", "Zweiten": "II", "Dritten": "III", "Vierten": "IV", 
 # --------------------------------------------------------------------------
 # Fetch snapshots
 # --------------------------------------------------------------------------
+def raw_dir(law: str, root: Path) -> Path:
+    """data/raw/<law>; a slash in the abbreviation ("FreizügG/EU") must not create a subfolder."""
+    return root / "raw" / law.replace("/", "_")
+
+
 def fetch(law: str, root: Path) -> Path:
+    """
+    save a dated snapshot of the law's XML from gesetze-im-internet.de.
+    The zip is never overwritten.
+    """
     now = datetime.now(timezone.utc)
-    snap = root / "raw" / law / now.strftime("%Y-%m-%d")
+    snap = raw_dir(law, root) / now.strftime("%Y-%m-%d")
     if (snap / "xml.zip").exists():
         print(f"[{law}] snapshot {snap.name} already exists, skipping")
         return snap
@@ -69,8 +81,8 @@ def fetch(law: str, root: Path) -> Path:
     manifest = {
         "law": law,
         "url": url,
-        "fetched_at": now.isoformat(timespec="seconds"),
-        "sha256": hashlib.sha256(data).hexdigest(),
+        "fetched_at": now.isoformat(timespec="seconds"), # 수집시간
+        "sha256": hashlib.sha256(data).hexdigest(),# 데이터 무결성 검증
     }
     (snap / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(f"[{law}] saved {len(data):,} bytes -> {snap}")
@@ -78,7 +90,10 @@ def fetch(law: str, root: Path) -> Path:
 
 
 def find_snapshot(law: str, root: Path, snapshot: str | None) -> Path:
-    base = root / "raw" / law
+    """
+    Find the snapshot directory of the date for a law. If snapshot is None, return the latest one.
+    """
+    base = raw_dir(law, root)
     if snapshot:
         return base / snapshot
     snaps = sorted(p for p in base.iterdir() if (p / "xml.zip").exists())
@@ -94,7 +109,9 @@ SKIP_TAGS = {"FnR", "Footnote", "Footnotes", "FnArea"}
 
 
 def render(el: ET.Element, depth: int = 0) -> str:
-    """Flatten an element to text; enumerations (DL/DT/DD) become '1. ...' lines."""
+    """
+    Flatten an XML element to plain text; enumerations (DL/DT/DD) become '1. ...' lines.
+    """
     parts = [el.text or ""]
     for ch in el:
         if ch.tag == "BR":
@@ -108,16 +125,22 @@ def render(el: ET.Element, depth: int = 0) -> str:
 
 
 def render_dl(dl: ET.Element, depth: int) -> str:
+    """
+    Render a <DL> list as indented lines with the DT term followed by the DD description.
+    """
     lines, dt = [], ""
     for ch in dl:
-        if ch.tag == "DT":
+        if ch.tag == "DT": #Definition Term
             dt = render(ch).strip()
-        elif ch.tag == "DD":
+        elif ch.tag == "DD": # Definition Description
             lines.append(f"{'  ' * depth}{dt} {clean(render(ch, depth + 1))}")
     return "\n".join(lines)
 
 
 def clean(s: str) -> str:
+    """
+    Normalize whitespace: collapse spaces, remove empty lines, strip leading/trailing whitespace.
+    """
     lines = [re.sub(r"[ \t\u00a0]+", " ", ln).rstrip() for ln in s.split("\n")]
     lines = [ln for ln in lines if ln.strip()]
     return "\n".join(lines).strip()
@@ -130,6 +153,8 @@ _ABS = r"(?:Absatz|Absatzes|Absätze|Absätzen|Abs\.)"
 _DETKW = r"(?:Satz|Satzes|Sätze|Sätzen|Nummer|Nummern|Nr\.|Buchstabe|Buchstaben|Halbsatz|Alternative)"
 HEAD = re.compile(r"§§?\s*(?=\d)")
 T_NUM = re.compile(r"\s*(\d+[a-z]?)\b")
+# Absatz numbers; tolerates a missing space in the source ("§ 50 Absatz 4den Namen" in BMG § 3)
+T_ABSNUM = re.compile(r"\s*(\d+(?:[a-z](?![a-zäöüß]))?)")
 T_ABS = re.compile(rf"\s*{_ABS}\s*(?=\d)")
 # Separators never cross a line break: "Absatz 3,\n2. Aufenthaltserlaubnis" is a list item.
 T_SEP = re.compile(r"[ \t]*(,|und|oder|sowie|bis)[ \t]+(?=\d)")
@@ -165,6 +190,9 @@ ABS_FOREIGN = re.compile(r"(?:\s+(?:Satz|Nummer|Nr\.)\s+\d+[a-z]?)*\s+(?:der|des
 
 
 def _law_abbr(name: str) -> str:
+    """
+    Convert a full law name to its abbreviation, if known.
+    """
     for full, abbr in LAW_NAMES.items():
         if name.startswith(full):
             return abbr
@@ -172,14 +200,22 @@ def _law_abbr(name: str) -> str:
 
 
 def _upto(a: str, b: str) -> list[str]:
-    """'1','3' -> ['2','3']; non-numeric ranges fall back to just the endpoint."""
+    """
+    Expand a numeric range: '1' and '3' -> ['2', '3'].
+    Non-numeric ranges fall back to just the endpoint.
+    """
     if a.isdigit() and b.isdigit() and 0 < int(b) - int(a) < 30:
         return [str(i) for i in range(int(a) + 1, int(b) + 1)]
     return [b]
 
 
 def parse_refs(text: str, own_law: str, own_section: str) -> list[dict]:
-    """Extract raw references. Ranges and existence checks happen in resolve()."""
+    """
+    Extract raw references. Ranges and existence checks happen in resolve().
+    1. Find all §/§§ chains, with optional law names and Absatz numbers.
+    2. Link chains without their own law name to the next chain's law if only a connector stands between them.
+    3. Alone Absatz references ("Absatz 2") are linked to the current section(own_section).
+    """
     refs: list[dict] = []
     masked = list(text)
 
@@ -196,7 +232,7 @@ def parse_refs(text: str, own_law: str, own_section: str) -> list[dict]:
             if not first:
                 msa = T_SEP_ABS.match(text, pos)
                 if msa and items:
-                    ma = T_NUM.match(text, msa.end())
+                    ma = T_ABSNUM.match(text, msa.end())
                     items.append({"section": items[-1]["section"], "absatz": ma.group(1)})
                     pos, level = ma.end(), "abs"
                     while md := T_DET.match(text, pos):
@@ -230,7 +266,7 @@ def parse_refs(text: str, own_law: str, own_section: str) -> list[dict]:
                     items.append({"section": num, "absatz": None})
                 pos = after
                 if f_abs:
-                    ma = T_NUM.match(text, f_abs.end())
+                    ma = T_ABSNUM.match(text, f_abs.end())
                     items[-1]["absatz"] = ma.group(1)
                     pos, lvl = ma.end(), "abs"
             elif lvl == "abs":
@@ -293,7 +329,9 @@ def parse_refs(text: str, own_law: str, own_section: str) -> list[dict]:
 
 
 def resolve(chunks: list[dict]) -> list[dict]:
-    """Expand ranges, check that targets exist, dedupe. Returns unresolved refs."""
+    """
+    compare cross-references to the parsed chunks, mark them as "ok" or "external", "unresolved"
+    """
     idx: dict[str, dict[str, set]] = {}
     order: dict[str, list[str]] = {}
     for c in chunks:
@@ -351,6 +389,12 @@ ENBEZ_RE = re.compile(r"§\s*(\d+[a-z]?)")
 
 
 def parse_law(law: str, snap: Path) -> tuple[list[dict], dict]:
+    """
+    analyze the XML of a law snapshot, return a list of Absatz-level chunks and stats.
+    1. Save the upper content hierarchy (Gliederung) in `path`.
+    2. Parsing each P tag as a Absatz, with its number of Absatz in parentheses.
+    3. For each chunk save its law, section, Absatz, title, text, Gliederung path, and cross-references into dict.
+    """
     manifest = {}
     if (snap / "manifest.json").exists():
         manifest = json.loads((snap / "manifest.json").read_text(encoding="utf-8"))
@@ -443,6 +487,9 @@ def parse_law(law: str, snap: Path) -> tuple[list[dict], dict]:
 
 
 def run_parse(laws: list[str], root: Path, snapshot: str | None) -> None:
+    """
+    Collect Absatz-level chunks from the latest snapshot of each law, resolve cross-references, and save them to JSONL.
+    """
     chunks, report = [], {"laws": {}}
     for law in laws:
         snap = find_snapshot(law, root, snapshot)

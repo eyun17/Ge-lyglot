@@ -82,6 +82,16 @@ def test_evaluate():
     s = summarize(rows)
     assert s["all"] == {"n": 2, "recall": 0.75, "all_found": 0.5}
     assert s["de"] == s["all"] and s["de/single"]["recall"] == 1.0 and s["de/multi"]["n"] == 1
+    # a replacement query (e.g. a translation) is searched instead of the question, and recorded
+    with tempfile.TemporaryDirectory() as d:
+        rows = evaluate(_index(d), items[:1], "bm25", k=1, queries={items[0]["question"]: "Republik Korea Zustimmung"})
+    assert rows[0]["query"] == "Republik Korea Zustimmung" and rows[0]["retrieved"] == ["BeschV § 26 Abs. 1"]
+    assert rows[0]["recall"] == 0.0
+    # a list of phrasings is searched one by one and fused: the original still finds the gold section
+    with tempfile.TemporaryDirectory() as d:
+        rows = evaluate(_index(d), items[:1], "bm25", k=2,
+                        queries={items[0]["question"]: [items[0]["question"], "Republik Korea Zustimmung"]})
+    assert rows[0]["recall"] == 1.0 and "BeschV § 26 Abs. 1" in rows[0]["retrieved"]
 
 
 def test_chroma_store_matches_numpy():

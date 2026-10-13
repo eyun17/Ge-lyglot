@@ -3,6 +3,8 @@
 
     python app.py                 # http://127.0.0.1:7860
     python app.py --share         # temporary public link
+    python app.py --provider ollama               # local model via Ollama (OLLAMA_MODEL, default qwen3:8b)
+    python app.py --provider openai --model gpt-5.4
 
 Needs data/index (python retrieval.py build) and OPENAI_API_KEY (see rag.py).
 """
@@ -17,6 +19,7 @@ from pathlib import Path
 import gradio as gr
 
 from laws import TOPIC, TOPIC_DE, corpus_names
+from llm_cli import add_llm_args, apply_llm_args
 from rag import CITE_RE
 
 # The German gloss is always shown: German is the language of the statutes themselves.
@@ -222,11 +225,13 @@ def build_ui(answer_fn, examples: list[list[str]]) -> gr.Blocks:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--index", default="data/index")
-    ap.add_argument("--evalset", default=str(Path(__file__).resolve().parent / "evalset" / "evalset_draft_en.jsonl"),
+    ap.add_argument("--evalset", default=str(Path(__file__).resolve().parent / "evalset" / "en.jsonl"),
                     help="file for example questions")
     ap.add_argument("--share", action="store_true")
     ap.add_argument("--port", type=int, default=7860)
+    add_llm_args(ap)
     args = ap.parse_args()
+    apply_llm_args(args)
 
     if not (Path(args.index) / "emb.npy").exists():
         raise SystemExit(f"index not found in {args.index}: run `python retrieval.py build` first")

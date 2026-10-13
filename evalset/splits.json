@@ -1,62 +1,48 @@
 {
-  "dev": {
-    "items": [
-      "ko:q03",
-      "ar-SY:q10",
-      "tr-TR:q15",
-      "it-IT:q15",
-      "en:q16",
-      "en:r01",
-      "ko:r04",
-      "tr-TR:r11",
-      "it-IT:r13",
-      "ar-EG:r16"
-    ],
-    "note": "10 hard items (dense recall 0) used to diagnose v1 and write prompt v2. ar-EG:r16 replaces ar-PS:r16 (identical question text)."
-  },
   "validation": {
     "items": [
-      "ko:q05",
-      "en:q09",
-      "tr-TR:q04",
-      "ar-SY:q11",
-      "ar-EG:q01",
-      "it-IT:q18",
-      "ko:q23",
-      "en:q22",
-      "tr-TR:q21",
-      "ar-SY:q14",
-      "ar-EG:q25",
-      "it-IT:q28",
-      "ko:r09",
-      "en:r12",
-      "tr-TR:r06",
-      "ar-SY:r08",
-      "ar-EG:r10",
-      "it-IT:r05",
-      "ko:r17",
-      "en:r15"
+      "ar:n01",
+      "it:n02",
+      "de:n03",
+      "it:n04",
+      "it:n06",
+      "en:n10",
+      "de:n11",
+      "de:n12",
+      "de:n13",
+      "ar-SY:n14",
+      "ar-SY:n16",
+      "ko:n17",
+      "ar:n21",
+      "de:n24",
+      "ko:n27",
+      "ko:n31",
+      "ar:n32",
+      "it:n33",
+      "ko:n36",
+      "it:n37",
+      "ko:n40",
+      "ar-SY:n42",
+      "en:n43",
+      "ar:n44",
+      "ar-SY:n45",
+      "en:n49",
+      "en:n55",
+      "en:n56",
+      "ar:n57",
+      "ar-SY:n60"
     ],
-    "note": "20 random items, stratified by module and type, ids disjoint from dev in every language; seed 20261009. Use to compare prompt versions and models. On 2026-10-12 the Palestinian set (ar-PS) was replaced by an Egyptian set (ar-EG): ar-EG:q01 names an Egyptian instead of a Palestinian asker; the other replaced items have identical question text."
+    "note": "Evalset v2. 30 of the 60 questions, half of each type (single, multi, refusal), each asked in one of the six sets (5 per set); seed 20261013. Use to compare prompt versions and models."
   },
-  "tax": {
+  "smoke": {
     "items": [
-      "ko:t01",
-      "en:t02",
-      "tr-TR:t03",
-      "ar-SY:t04",
-      "it-IT:t05",
-      "ar-SY:t06",
-      "tr-TR:t07",
-      "ar-EG:t08",
-      "it-IT:t09",
-      "ko:t10",
-      "en:t11",
-      "tr-TR:t12",
-      "ar-SY:t13",
-      "ar-EG:t14",
-      "it-IT:t15"
+      "ko:n47",
+      "en:n08",
+      "de:n34",
+      "ar:n38",
+      "ar-SY:n30",
+      "it:n15"
     ],
-    "note": "all 15 tax-module questions once, languages rotated; the localized items t05-t07 use a non-Korean asker (it-IT for the EU spouse rule, ar-SY for Kindergeld, tr-TR for foreign income). ar-EG:t08 and ar-EG:t14 replace the former ar-PS items (identical text). Not yet run with the LLM."
+    "note": "Evalset v2. 6 questions not in validation, one per set: a cheap check that a run works end to end."
   }
 }

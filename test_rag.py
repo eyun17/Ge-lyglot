@@ -121,3 +121,51 @@ if __name__ == "__main__":
         if name.startswith("test_"):
             fn()
             print("ok", name)
+
+
+def test_ollama_llm(monkeypatch):
+    import io
+    import json as _json
+    import urllib.error
+    import urllib.request
+    from rag import OllamaLLM
+    sent = []
+
+    def fake_urlopen(req, timeout=None):
+        payload = _json.loads(req.data)
+        sent.append(payload)
+        if "think" in payload and payload["model"] == "old-model":
+            raise urllib.error.HTTPError(req.full_url, 400, "bad", {}, io.BytesIO(b'"old-model" does not support thinking'))
+        body = {"message": {"content": "<think>hmm</think>STATUS: answer\n\nText"},
+                "prompt_eval_count": 120, "eval_count": 30}
+        return io.BytesIO(_json.dumps(body).encode())
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    llm = OllamaLLM("qwen3:8b", num_ctx=16384)
+    assert llm.complete("sys", "user", max_tokens=100) == "STATUS: answer\n\nText"  # thinking stripped
+    assert sent[0]["think"] is False and sent[0]["options"]["num_ctx"] == 16384
+    assert sent[0]["options"]["num_predict"] == 100 and sent[0]["options"]["temperature"] == 0
+    assert llm.usage == {"input_tokens": 120, "output_tokens": 30}
+    # a model without thinking support: retried without the flag
+    old = OllamaLLM("old-model")
+    assert old.complete("s", "u").endswith("Text") and "think" not in sent[-1]
+
+
+def test_provider_and_model_from_cli(monkeypatch):
+    import argparse
+    from llm_cli import add_llm_args, apply_llm_args
+    from rag import OllamaLLM, OpenAICompatLLM, llm_from_env
+    for var in ("LLM_PROVIDER", "LLM_MODEL", "OLLAMA_MODEL", "OLLAMA_URL", "OLLAMA_NUM_CTX"):
+        monkeypatch.delenv(var, raising=False)
+    ap = argparse.ArgumentParser()
+    add_llm_args(ap)
+    apply_llm_args(ap.parse_args(["--provider", "ollama", "--model", "llama3:8b"]))
+    import os
+    assert os.environ["LLM_PROVIDER"] == "ollama" and os.environ["OLLAMA_MODEL"] == "llama3:8b"
+    llm = llm_from_env()
+    assert isinstance(llm, OllamaLLM) and llm.name == "llama3:8b" and llm.num_ctx == 16384
+    # switching back to openai keeps its own model variable
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    apply_llm_args(ap.parse_args(["--provider", "openai", "--model", "gpt-5.4"]))
+    assert os.environ["LLM_MODEL"] == "gpt-5.4" and os.environ["OLLAMA_MODEL"] == "llama3:8b"
+    assert isinstance(llm_from_env(), OpenAICompatLLM)

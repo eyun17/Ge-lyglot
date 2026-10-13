@@ -31,6 +31,9 @@ _TOKEN = re.compile(r"\w+")
 
 
 def tokenize(s: str) -> list[str]:
+    """
+    Lowercase, split on non-word characters. BM25 expects a list of tokens, not a string.
+    """
     return _TOKEN.findall(s.lower())
 
 
@@ -38,15 +41,20 @@ _GL_REF = re.compile(r"\s*\(§[^)]*\)$")
 
 
 def index_text(c: dict) -> str:
-    """Text that gets embedded / BM25-indexed: citation header + title + body.
+    """
+    Text that gets embedded / BM25-indexed: citation header + title + body.
     Some sections have no title in the official XML (many in EStG); they get the nearest
-    heading of the outline instead, e.g. "Selbständige Arbeit" for EStG § 18."""
+    heading of the outline instead, e.g. "Selbständige Arbeit" for EStG § 18.
+    """
     head = f"{c['law']} § {c['section']}" + (f" Abs. {c['absatz']}" if c.get("absatz") else "")
     title = c.get("title") or (_GL_REF.sub("", c["gliederung"][-1]) if c.get("gliederung") else "")
     return f"{head} {title}\n{c['text']}"
 
 
 class STEmbedder:
+    """
+    Embedding wrapper: SentenceTransformer with a max_seq_length that keeps CPU indexing feasible
+    """
     def __init__(self, model: str = MODEL, max_len: int = 1024):
         from sentence_transformers import SentenceTransformer
         self.name = model
@@ -63,7 +71,9 @@ class STEmbedder:
 # Vector stores: same interface, so the rest of the code does not care which one
 # --------------------------------------------------------------------------
 class NumpyStore:
-    """Exact search: one matrix product over all chunk embeddings."""
+    """
+    Exact search: one matrix product over all chunk embeddings.
+    """
     name = "numpy"
 
     def __init__(self, emb: np.ndarray, chunks: list[dict]):
@@ -78,7 +88,9 @@ class NumpyStore:
 
 
 class ChromaStore:
-    """ChromaDB collection holding the same embeddings plus filterable metadata."""
+    """
+    ChromaDB collection holding the same embeddings plus filterable metadata.
+    """
     name = "chroma"
 
     def __init__(self, path: Path, chunks: list[dict]):
@@ -127,6 +139,9 @@ class LawIndex:
     # ---- persistence -----------------------------------------------------
     @classmethod
     def build(cls, chunks_path: Path, out: Path, embedder=None, store: str = "numpy") -> "LawIndex":
+        """
+        Build an index from a chunks.jsonl file, embedding the text and writing emb.npy + chunks.jsonl.
+        """
         chunks = [json.loads(l) for l in chunks_path.open(encoding="utf-8") if l.strip()]
         embedder = embedder or STEmbedder()
         emb = embedder.encode([index_text(c) for c in chunks])
@@ -144,7 +159,9 @@ class LawIndex:
 
     @staticmethod
     def to_chroma(out: Path) -> None:
-        """Add a Chroma store to an index that was built with numpy, reusing emb.npy."""
+        """
+        Add a Chroma store to an index that was built with numpy, reusing emb.npy.
+        """
         chunks = [json.loads(l) for l in (out / "chunks.jsonl").open(encoding="utf-8")]
         ChromaStore.write(out / "chroma", chunks, np.load(out / "emb.npy"))
         meta = json.loads((out / "meta.json").read_text())
@@ -153,6 +170,9 @@ class LawIndex:
 
     @classmethod
     def load(cls, out: Path, embedder=None, store: str | None = None) -> "LawIndex":
+        """
+        Load an index from a directory containing chunks.jsonl, emb.npy, and meta.json.
+        """
         chunks = [json.loads(l) for l in (out / "chunks.jsonl").open(encoding="utf-8")]
         emb = np.load(out / "emb.npy")
         meta = json.loads((out / "meta.json").read_text()) if (out / "meta.json").exists() else {}
@@ -200,7 +220,9 @@ class LawIndex:
         return [{"rank": r + 1, **self.chunks[i]} for r, i in enumerate(ranked)]
 
     def get_section(self, law: str, section: str, absatz: str | None = None) -> list[dict]:
-        """Direct lookup, e.g. get_section('AufenthG', '18a') or (..., '18a', '2')."""
+        """
+        Direct lookup, e.g. get_section('AufenthG', '18a') or (..., '18a', '2').
+        """
         section = section.replace("§", "").strip()
         hits = [self.chunks[i] for i in self.by_sec.get((law.lower(), section), [])]
         return [c for c in hits if absatz is None or c["absatz"] == str(absatz)]

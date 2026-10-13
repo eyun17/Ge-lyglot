@@ -10,4 +10,5 @@ openai            # default provider; also works with Ollama / vLLM
 gradio
 langgraph         # condition 4 (agent.py)
 # dev
+openpyxl          # review/ workbooks for native-speaker review
 pytest

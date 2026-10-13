@@ -9,6 +9,15 @@
       "chunks": 916,
       "sections": 199
     },
+    "AufenthV": {
+      "snapshot": "2026-10-12",
+      "repealed": 2,
+      "skipped_enbez": [],
+      "duplicate_absatz": [],
+      "repealed_absaetze": 1,
+      "chunks": 293,
+      "sections": 117
+    },
     "BeschV": {
       "snapshot": "2026-10-08",
       "repealed": 3,
@@ -28,6 +37,33 @@
       "repealed_absaetze": 2,
       "chunks": 374,
       "sections": 114
+    },
+    "FreizügG/EU": {
+      "snapshot": "2026-10-12",
+      "repealed": 0,
+      "skipped_enbez": [],
+      "duplicate_absatz": [],
+      "repealed_absaetze": 0,
+      "chunks": 89,
+      "sections": 24
+    },
+    "StAG": {
+      "snapshot": "2026-10-12",
+      "repealed": 7,
+      "skipped_enbez": [],
+      "duplicate_absatz": [],
+      "repealed_absaetze": 2,
+      "chunks": 84,
+      "sections": 36
+    },
+    "BMG": {
+      "snapshot": "2026-10-12",
+      "repealed": 3,
+      "skipped_enbez": [],
+      "duplicate_absatz": [],
+      "repealed_absaetze": 1,
+      "chunks": 191,
+      "sections": 58
     },
     "EStG": {
       "snapshot": "2026-10-09",
@@ -64,12 +100,39 @@
       "repealed_absaetze": 31,
       "chunks": 1294,
       "sections": 442
+    },
+    "SGB V": {
+      "snapshot": "2026-10-12",
+      "repealed": 42,
+      "skipped_enbez": [],
+      "duplicate_absatz": [],
+      "repealed_absaetze": 90,
+      "chunks": 2911,
+      "sections": 652
+    },
+    "VVG": {
+      "snapshot": "2026-10-12",
+      "repealed": 1,
+      "skipped_enbez": [],
+      "duplicate_absatz": [],
+      "repealed_absaetze": 0,
+      "chunks": 524,
+      "sections": 222
+    },
+    "KSVG": {
+      "snapshot": "2026-10-12",
+      "repealed": 7,
+      "skipped_enbez": [],
+      "duplicate_absatz": [],
+      "repealed_absaetze": 6,
+      "chunks": 139,
+      "sections": 61
     }
   },
   "cross_refs": {
-    "external": 1726,
-    "ok": 9047,
-    "unresolved": 158
+    "external": 2703,
+    "ok": 17889,
+    "unresolved": 322
   },
   "unresolved": [
     {
@@ -208,9 +271,114 @@
       "target": "AufenthG § 54a Abs. 4"
     },
     {
+      "chunk": "AufenthV-48-1",
+      "raw": "§ 55 Abs. 221",
+      "target": "AufenthV § 55 Abs. 221"
+    },
+    {
+      "chunk": "AufenthV-48-1",
+      "raw": "§ 6 Absatz 2 Satz 3 Nummer 2",
+      "target": "AufenthV § 6 Abs. 2"
+    },
+    {
+      "chunk": "AufenthV-52-4",
+      "raw": "§ 45 Absatz 1 Nummer 1 und 2",
+      "target": "AufenthV § 45 Abs. 1"
+    },
+    {
+      "chunk": "AufenthV-52a-2",
+      "raw": "§ 45b Absatz 2",
+      "target": "AufenthV § 45b Abs. 2"
+    },
+    {
+      "chunk": "AufenthV-52a-3",
+      "raw": "§ 45b Absatz 1",
+      "target": "AufenthV § 45b Abs. 1"
+    },
+    {
+      "chunk": "AufenthV-52a-3",
+      "raw": "§ 45b Absatz 2",
+      "target": "AufenthV § 45b Abs. 2"
+    },
+    {
+      "chunk": "AufenthV-65",
+      "raw": "§ 2 Absatz 7",
+      "target": "FreizügG/EU § 2 Abs. 7"
+    },
+    {
       "chunk": "AsylG-87c-5",
       "raw": "§ 23 Absatz 1",
       "target": "AsylG § 23 Abs. 1"
+    },
+    {
+      "chunk": "FreizügG/EU-11-1",
+      "raw": "§ 44 Absatz 4",
+      "target": "FreizügG/EU § 44 Abs. 4"
+    },
+    {
+      "chunk": "FreizügG/EU-11-1",
+      "raw": "§§ 45a, 46 Absatz 2",
+      "target": "FreizügG/EU § 45a Abs. None"
+    },
+    {
+      "chunk": "FreizügG/EU-11-1",
+      "raw": "§ 50 Absatz 3 bis 6",
+      "target": "FreizügG/EU § 50 Abs. 3"
+    },
+    {
+      "chunk": "FreizügG/EU-11-1",
+      "raw": "§ 50 Absatz 3 bis 6",
+      "target": "FreizügG/EU § 50 Abs. 4"
+    },
+    {
+      "chunk": "FreizügG/EU-11-1",
+      "raw": "§ 50 Absatz 3 bis 6",
+      "target": "FreizügG/EU § 50 Abs. 5"
+    },
+    {
+      "chunk": "FreizügG/EU-11-1",
+      "raw": "§ 50 Absatz 3 bis 6",
+      "target": "FreizügG/EU § 50 Abs. 6"
+    },
+    {
+      "chunk": "FreizügG/EU-11-1",
+      "raw": "§ 59 Absatz 1 Satz 6 und 7",
+      "target": "FreizügG/EU § 59 Abs. 1"
+    },
+    {
+      "chunk": "FreizügG/EU-11-1",
+      "raw": "§§ 69, 71 Absatz 2 und 3 Nummer 2",
+      "target": "FreizügG/EU § 69 Abs. None"
+    },
+    {
+      "chunk": "FreizügG/EU-11-3",
+      "raw": "§§ 11a und 99 Absatz 1 Nummer 13a Satz 1",
+      "target": "AufenthG § 11a Abs. None"
+    },
+    {
+      "chunk": "BMG-3-2",
+      "raw": "§ 40b",
+      "target": "StAG § 40b Abs. None"
+    },
+    {
+      "chunk": "BMG-3-2",
+      "raw": "§ 29",
+      "target": "StAG § 29 Abs. None"
+    },
+    {
+      "chunk": "BMG-54-2",
+      "raw": "§ 28 Absatz 4",
+      "target": "BMG § 28 Abs. 4"
+    },
+    {
+      "chunk": "BMG-55-5",
+      "raw": "§ 36 Absatz 1",
+      "target": "BMG § 36 Abs. 1"
+    },
+    {
+      "chunk": "BMG-56-1",
+      "raw": "§ 36 Absatz 1",
+      "target": "BMG § 36 Abs. 1"
     },
     {
       "chunk": "EStG-2-2",
@@ -683,14 +851,39 @@
       "target": "SGB IV § 173 Abs. 2"
     },
     {
+      "chunk": "SGB IV-109-2",
+      "raw": "§ 44c",
+      "target": "SGB V § 44c Abs. None"
+    },
+    {
       "chunk": "SGB IV-111-1",
       "raw": "§ 124 Satz 1",
       "target": "SGB IV § 124 Abs. None"
     },
     {
+      "chunk": "SGB VI-4-3",
+      "raw": "§ 44c Absatz 1 Satz 1",
+      "target": "SGB V § 44c Abs. 1"
+    },
+    {
+      "chunk": "SGB VI-4-4",
+      "raw": "§ 44c Absatz 1 Satz 1",
+      "target": "SGB V § 44c Abs. 1"
+    },
+    {
       "chunk": "SGB VI-5-2",
       "raw": "§ 8 Absatz 3",
       "target": "SGB VI § 8 Abs. 3"
+    },
+    {
+      "chunk": "SGB VI-5-2",
+      "raw": "§ 44c Absatz 1 Satz 1",
+      "target": "SGB V § 44c Abs. 1"
+    },
+    {
+      "chunk": "SGB VI-6-1b",
+      "raw": "§ 44c Absatz 1 Satz 1",
+      "target": "SGB V § 44c Abs. 1"
     },
     {
       "chunk": "SGB VI-21-4",
@@ -738,6 +931,21 @@
       "target": "SGB VI § 10a Abs. None"
     },
     {
+      "chunk": "SGB VI-166-1",
+      "raw": "§ 44 Absatz 1a",
+      "target": "SGB V § 44 Abs. 1a"
+    },
+    {
+      "chunk": "SGB VI-166-1",
+      "raw": "§ 44c Absatz 1 Satz 1",
+      "target": "SGB V § 44c Abs. 1"
+    },
+    {
+      "chunk": "SGB VI-170-1",
+      "raw": "§ 47 Absatz 2a",
+      "target": "SGB V § 47 Abs. 2a"
+    },
+    {
       "chunk": "SGB VI-174-1",
       "raw": "§§ 28d bis 28n und 28r",
       "target": "SGB VI § 28d Abs. None"
@@ -751,6 +959,11 @@
       "chunk": "SGB VI-174-1",
       "raw": "§§ 28d bis 28n und 28r",
       "target": "SGB VI § 28r Abs. None"
+    },
+    {
+      "chunk": "SGB VI-175-1",
+      "raw": "§ 44 Absatz 1a",
+      "target": "SGB V § 44 Abs. 1a"
     },
     {
       "chunk": "SGB VI-198",
@@ -786,6 +999,11 @@
       "chunk": "SGB VI-229-6",
       "raw": "§ 8a",
       "target": "SGB VI § 8a Abs. None"
+    },
+    {
+      "chunk": "SGB VI-234-2",
+      "raw": "§ 21 Abs. 4",
+      "target": "SGB V § 21 Abs. 4"
     },
     {
       "chunk": "SGB VI-236a-1",
@@ -861,6 +1079,671 @@
       "chunk": "SGB VI-321",
       "raw": "Absatz 4",
       "target": "SGB VI § 321 Abs. 4"
+    },
+    {
+      "chunk": "SGB V-4a-3",
+      "raw": "§ 18 Absatz 1",
+      "target": "SGB IV § 18 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-8-1",
+      "raw": "§ 1 Abs. 6",
+      "target": "SGB V § 1 Abs. 6"
+    },
+    {
+      "chunk": "SGB V-20-6",
+      "raw": "§ 18 Absatz 1",
+      "target": "SGB IV § 18 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-20h-4",
+      "raw": "§ 18 Abs. 1",
+      "target": "SGB IV § 18 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-31a-1",
+      "raw": "§ 342 Absatz 2a",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-31a-3a",
+      "raw": "§ 342 Absatz 2a",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-32-1b",
+      "raw": "Absatz 6",
+      "target": "SGB V § 32 Abs. 6"
+    },
+    {
+      "chunk": "SGB V-32-2",
+      "raw": "§ 125b Absatz 2",
+      "target": "SGB V § 125b Abs. 2"
+    },
+    {
+      "chunk": "SGB V-39a-1",
+      "raw": "§ 18 Abs. 1",
+      "target": "SGB IV § 18 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-39a-2",
+      "raw": "§ 18 Absatz 1",
+      "target": "SGB IV § 18 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-65b-11",
+      "raw": "§ 18 Absatz 1",
+      "target": "SGB IV § 18 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-65c-4",
+      "raw": "§ 18 Absatz 1",
+      "target": "SGB IV § 18 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-65d-1",
+      "raw": "Absatz 5",
+      "target": "SGB V § 65d Abs. 5"
+    },
+    {
+      "chunk": "SGB V-65e-1",
+      "raw": "§ 18 Absatz 1",
+      "target": "SGB IV § 18 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-69-4",
+      "raw": "§§ 53, 58, 60 und 63",
+      "target": "SGB V § 58 Abs. None"
+    },
+    {
+      "chunk": "SGB V-78-5",
+      "raw": "§§ 72 bis 77 Absatz 1 und 1a",
+      "target": "SGB V § 72 Abs. 1a"
+    },
+    {
+      "chunk": "SGB V-78-5",
+      "raw": "Absatz 3a",
+      "target": "SGB V § 78 Abs. 3a"
+    },
+    {
+      "chunk": "SGB V-78-6",
+      "raw": "Absatz 3a",
+      "target": "SGB V § 78 Abs. 3a"
+    },
+    {
+      "chunk": "SGB V-87a-3b",
+      "raw": "§ 87d Absatz 1 Nummer 4",
+      "target": "SGB V § 87d Abs. 1"
+    },
+    {
+      "chunk": "SGB V-91a-1",
+      "raw": "§§ 76 bis 77 Absatz 1 und 1a",
+      "target": "SGB IV § 76 Abs. 1a"
+    },
+    {
+      "chunk": "SGB V-92a-3",
+      "raw": "Absatz 1 und 20",
+      "target": "SGB V § 92a Abs. 20"
+    },
+    {
+      "chunk": "SGB V-101-4",
+      "raw": "§ 95 Abs. 10",
+      "target": "SGB V § 95 Abs. 10"
+    },
+    {
+      "chunk": "SGB V-101-4",
+      "raw": "§ 95 Abs. 11",
+      "target": "SGB V § 95 Abs. 11"
+    },
+    {
+      "chunk": "SGB V-110a-3",
+      "raw": "§ 18 Absatz 1",
+      "target": "SGB IV § 18 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-125b-2a",
+      "raw": "Absatz 1",
+      "target": "SGB V § 125b Abs. 1"
+    },
+    {
+      "chunk": "SGB V-129-2a",
+      "raw": "§ 52b Absatz 2 Satz 2",
+      "target": "SGB V § 52b Abs. 2"
+    },
+    {
+      "chunk": "SGB V-130b-8",
+      "raw": "Absätze 1 bis 7",
+      "target": "SGB V § 130b Abs. 2"
+    },
+    {
+      "chunk": "SGB V-130b-8a",
+      "raw": "Absätze 1 bis 8 und 9 bis 10",
+      "target": "SGB V § 130b Abs. 2"
+    },
+    {
+      "chunk": "SGB V-135d-3",
+      "raw": "§ 6a Absatz 1 Satz 1",
+      "target": "SGB V § 6a Abs. 1"
+    },
+    {
+      "chunk": "SGB V-135d-3",
+      "raw": "Absatz 3a",
+      "target": "SGB V § 135d Abs. 3a"
+    },
+    {
+      "chunk": "SGB V-137g-2",
+      "raw": "§ 73a",
+      "target": "SGB V § 73a Abs. None"
+    },
+    {
+      "chunk": "SGB V-139e-12",
+      "raw": "Absätze 1 bis 4a und 6 bis 10",
+      "target": "SGB V § 139e Abs. 4a"
+    },
+    {
+      "chunk": "SGB V-140a-1",
+      "raw": "§§ 73a, 73c und 140a",
+      "target": "SGB V § 73a Abs. None"
+    },
+    {
+      "chunk": "SGB V-140f-8",
+      "raw": "§ 18 Absatz 1",
+      "target": "SGB IV § 18 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-164-4",
+      "raw": "§ 265a",
+      "target": "SGB V § 265a Abs. None"
+    },
+    {
+      "chunk": "SGB V-169-3",
+      "raw": "§ 9 Absatz 2 bis 3a",
+      "target": "SGB V § 9 Abs. 3a"
+    },
+    {
+      "chunk": "SGB V-186-2",
+      "raw": "§ 179 Abs. 2",
+      "target": "SGB V § 179 Abs. 2"
+    },
+    {
+      "chunk": "SGB V-186-3",
+      "raw": "§ 179 Abs. 2",
+      "target": "SGB V § 179 Abs. 2"
+    },
+    {
+      "chunk": "SGB V-199-1",
+      "raw": "§ 179 Abs. 1",
+      "target": "SGB V § 179 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-203-3",
+      "raw": "Absatz 2",
+      "target": "SGB V § 203 Abs. 2"
+    },
+    {
+      "chunk": "SGB V-203-4",
+      "raw": "Absatz 2",
+      "target": "SGB V § 203 Abs. 2"
+    },
+    {
+      "chunk": "SGB V-217d-2",
+      "raw": "§§ 72 bis 77 Absatz 1 und 1a",
+      "target": "SGB V § 72 Abs. 1a"
+    },
+    {
+      "chunk": "SGB V-217d-2",
+      "raw": "Absatz 3a",
+      "target": "SGB V § 217d Abs. 3a"
+    },
+    {
+      "chunk": "SGB V-220-3",
+      "raw": "§§ 76, 77 Absatz 1a Satz 1 bis 6",
+      "target": "SGB V § 77 Abs. 1a"
+    },
+    {
+      "chunk": "SGB V-220-3",
+      "raw": "§ 83 Absatz 1 Nummer 2 Buchstabe b und c",
+      "target": "SGB V § 83 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-220-3",
+      "raw": "Absatz 3a",
+      "target": "SGB V § 220 Abs. 3a"
+    },
+    {
+      "chunk": "SGB V-226-5",
+      "raw": "§ 134",
+      "target": "SGB IV § 134 Abs. None"
+    },
+    {
+      "chunk": "SGB V-234-1",
+      "raw": "§ 44 Absatz 1a",
+      "target": "SGB V § 44 Abs. 1a"
+    },
+    {
+      "chunk": "SGB V-240-4",
+      "raw": "§ 245 Abs. 1",
+      "target": "SGB V § 245 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-242-1",
+      "raw": "§ 263 Absatz 1 Satz 1 Nummer 2",
+      "target": "SGB V § 263 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-256a-3",
+      "raw": "§ 24 Absatz 1a",
+      "target": "SGB IV § 24 Abs. 1a"
+    },
+    {
+      "chunk": "SGB V-275a-1",
+      "raw": "§§ 275a und 275d",
+      "target": "SGB V § 275d Abs. None"
+    },
+    {
+      "chunk": "SGB V-275a-5",
+      "raw": "§ 6a Absatz 1 Satz 1",
+      "target": "SGB V § 6a Abs. 1"
+    },
+    {
+      "chunk": "SGB V-275a-5",
+      "raw": "Absatz 3a",
+      "target": "SGB V § 275a Abs. 3a"
+    },
+    {
+      "chunk": "SGB V-279-8",
+      "raw": "§§ 58, 59 Absatz 1 bis 3, 5 und 6",
+      "target": "SGB V § 58 Abs. None"
+    },
+    {
+      "chunk": "SGB V-279-8",
+      "raw": "§ 64 Absatz 1 und 2 Satz 2, Absatz 3 Satz 2 und 3",
+      "target": "SGB V § 64 Abs. 2"
+    },
+    {
+      "chunk": "SGB V-280-3",
+      "raw": "Absatz 3a",
+      "target": "SGB V § 280 Abs. 3a"
+    },
+    {
+      "chunk": "SGB V-282-4",
+      "raw": "§ 217b Absatz 2a",
+      "target": "SGB IV § 217b Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-282-4",
+      "raw": "§ 279 Absatz 7 Satz 4 und 5",
+      "target": "SGB IV § 279 Abs. 7"
+    },
+    {
+      "chunk": "SGB V-284-1",
+      "raw": "Absatz 5",
+      "target": "SGB V § 284 Abs. 5"
+    },
+    {
+      "chunk": "SGB V-293a-1",
+      "raw": "§§ 73a, 73c und 140a",
+      "target": "SGB V § 73a Abs. None"
+    },
+    {
+      "chunk": "SGB V-334-2",
+      "raw": "§ 342 Absatz 2b",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-337-2",
+      "raw": "§ 342 Absatz 2a bis 2c",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-337-2",
+      "raw": "§ 342 Absatz 2a bis 2c",
+      "target": "SGB V § 342 Abs. 2c"
+    },
+    {
+      "chunk": "SGB V-342-1",
+      "raw": "Absätzen 2a bis 2c",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-342-1",
+      "raw": "Absätzen 2a bis 2c",
+      "target": "SGB V § 342 Abs. 2c"
+    },
+    {
+      "chunk": "SGB V-342-2",
+      "raw": "Absätzen 2a, 2b oder 2c",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-342-2",
+      "raw": "Absätzen 2a, 2b oder 2c",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-342-2",
+      "raw": "Absätzen 2a, 2b oder 2c",
+      "target": "SGB V § 342 Abs. 2c"
+    },
+    {
+      "chunk": "SGB V-343-1a",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-343-1a",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-343-1a",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2c"
+    },
+    {
+      "chunk": "SGB V-343-4",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-343-4",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-343-4",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2c"
+    },
+    {
+      "chunk": "SGB V-343-5",
+      "raw": "§ 342 Absatz 2b und 2c",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-343-5",
+      "raw": "§ 342 Absatz 2b und 2c",
+      "target": "SGB V § 342 Abs. 2c"
+    },
+    {
+      "chunk": "SGB V-345-2",
+      "raw": "§ 343 Absatz 1",
+      "target": "SGB V § 343 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-347-1",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-347-1",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-347-1",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2c"
+    },
+    {
+      "chunk": "SGB V-348-1",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-348-1",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-348-1",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2c"
+    },
+    {
+      "chunk": "SGB V-349-2",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-349-2",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-349-2",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2c"
+    },
+    {
+      "chunk": "SGB V-349-4",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-349-4",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-349-4",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2c"
+    },
+    {
+      "chunk": "SGB V-351-2",
+      "raw": "§ 342 Absatz 2b",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-351-3",
+      "raw": "§ 342 Absatz 2b",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-353-1",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-353-1",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-353-1",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2c"
+    },
+    {
+      "chunk": "SGB V-353-4",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-353-4",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-353-4",
+      "raw": "§ 342 Absatz 2a, 2b und 2c",
+      "target": "SGB V § 342 Abs. 2c"
+    },
+    {
+      "chunk": "SGB V-354-2",
+      "raw": "§ 342 Absatz 2 bis 2c",
+      "target": "SGB V § 342 Abs. 2c"
+    },
+    {
+      "chunk": "SGB V-355-4",
+      "raw": "§ 342 Absatz 2a Nummer 2 Buchstabe a",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-355-4a",
+      "raw": "§ 342 Absatz 2a Nummer 2 Buchstabe b",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-355-4c",
+      "raw": "§ 342 Absatz 2a Nummer 2 Buchstabe c",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-355-4d",
+      "raw": "§ 342 Absatz 2a Nummer 2 Buchstabe e",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-356-3",
+      "raw": "§ 342 Absatz 2b",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-356-3",
+      "raw": "§ 342 Absatz 2a",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-357-4",
+      "raw": "§ 342 Absatz 2b",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-357-4",
+      "raw": "§ 342 Absatz 2a",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-358-1a",
+      "raw": "§ 342 Absatz 2a",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-358-2",
+      "raw": "§ 342 Absatz 2a",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-358-7",
+      "raw": "§ 342 Absatz 2b",
+      "target": "SGB V § 342 Abs. 2b"
+    },
+    {
+      "chunk": "SGB V-358-8",
+      "raw": "§ 342 Absatz 2a",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-359-2",
+      "raw": "§ 342 Absatz 2a",
+      "target": "SGB V § 342 Abs. 2a"
+    },
+    {
+      "chunk": "SGB V-362-1",
+      "raw": "§ 343 Absatz 1 und 1a",
+      "target": "SGB V § 343 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-396",
+      "raw": "Absatz 4",
+      "target": "SGB V § 396 Abs. 4"
+    },
+    {
+      "chunk": "SGB V-400-1",
+      "raw": "§ 18 Abs. 1",
+      "target": "SGB IV § 18 Abs. 1"
+    },
+    {
+      "chunk": "SGB V-400-5",
+      "raw": "§ 1 Abs. 3",
+      "target": "SGB V § 1 Abs. 3"
+    },
+    {
+      "chunk": "SGB V-401-3",
+      "raw": "§ 30 Abs. 2 Satz 2 und Abs. 7",
+      "target": "SGB V § 30 Abs. 2"
+    },
+    {
+      "chunk": "SGB V-401-3",
+      "raw": "§ 30 Abs. 2 Satz 2 und Abs. 7",
+      "target": "SGB V § 30 Abs. 7"
+    },
+    {
+      "chunk": "SGB V-407",
+      "raw": "§ 28b Absatz 1",
+      "target": "SGB V § 28b Abs. 1"
+    },
+    {
+      "chunk": "SGB V-407",
+      "raw": "§§ 28c und 28e",
+      "target": "SGB V § 28c Abs. None"
+    },
+    {
+      "chunk": "SGB V-407",
+      "raw": "§§ 28c und 28e",
+      "target": "SGB V § 28e Abs. None"
+    },
+    {
+      "chunk": "SGB V-408-3",
+      "raw": "§ 30 Absatz 4 Satz 2",
+      "target": "SGB V § 30 Abs. 4"
+    },
+    {
+      "chunk": "SGB V-408-4",
+      "raw": "§ 30 Absatz 4 Satz 2",
+      "target": "SGB V § 30 Abs. 4"
+    },
+    {
+      "chunk": "SGB V-410",
+      "raw": "§ 79 Absatz 6 Satz 1",
+      "target": "SGB IV § 79 Abs. 6"
+    },
+    {
+      "chunk": "SGB V-410",
+      "raw": "§ 217b Absatz 2 Satz 6",
+      "target": "SGB IV § 217b Abs. 2"
+    },
+    {
+      "chunk": "SGB V-410",
+      "raw": "§ 282 Absatz 4 Satz 4",
+      "target": "SGB IV § 282 Abs. 4"
+    },
+    {
+      "chunk": "SGB V-413",
+      "raw": "§ 251 Absatz 4c",
+      "target": "SGB V § 251 Abs. 4c"
+    },
+    {
+      "chunk": "SGB V-417-2",
+      "raw": "Absatz 4",
+      "target": "SGB V § 417 Abs. 4"
+    },
+    {
+      "chunk": "SGB V-428",
+      "raw": "§ 62 Absatz 2 Satz 4 und 5 Nummer 2",
+      "target": "SGB V § 62 Abs. 5"
+    },
+    {
+      "chunk": "SGB V-429",
+      "raw": "§ 35a Absatz 1d Satz 1",
+      "target": "SGB V § 35a Abs. 1d"
+    },
+    {
+      "chunk": "VVG-7-5",
+      "raw": "Absätze 1 bis 4",
+      "target": "VVG § 7 Abs. 3"
+    },
+    {
+      "chunk": "VVG-7-5",
+      "raw": "Absätze 1 bis 4",
+      "target": "VVG § 7 Abs. 4"
+    },
+    {
+      "chunk": "VVG-193-8",
+      "raw": "§ 291a Absatz 1a",
+      "target": "SGB V § 291a Abs. 1a"
     }
   ]
 }

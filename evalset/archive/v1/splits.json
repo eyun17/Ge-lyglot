@@ -1,0 +1,62 @@
+{
+  "dev": {
+    "items": [
+      "ko:q03",
+      "ar:q10",
+      "ar:q15",
+      "it-IT:q15",
+      "en:q16",
+      "en:r01",
+      "ko:r04",
+      "en:r11",
+      "it-IT:r13",
+      "ar:r16"
+    ],
+    "note": "10 hard items (dense recall 0) used to diagnose v1 and write prompt v2. ar-EG:r16 replaces an item of a former set (identical question text). On 2026-10-12 the Arabic items were moved to the Modern Standard Arabic set (ar), the text used in the earlier runs; ar-SY and ar-EG are now dialect sets. On 2026-10-12 the Turkish set was dropped (no reviewer available); its items here were replaced by the same question in en, or in ar for questions that name the asker's nationality. Runs before that date used the Turkish text."
+  },
+  "validation": {
+    "items": [
+      "ko:q05",
+      "en:q09",
+      "en:q04",
+      "ar:q11",
+      "ar:q01",
+      "it-IT:q18",
+      "ko:q23",
+      "en:q22",
+      "en:q21",
+      "ar:q14",
+      "ar:q25",
+      "it-IT:q28",
+      "ko:r09",
+      "en:r12",
+      "en:r06",
+      "ar:r08",
+      "ar:r10",
+      "it-IT:r05",
+      "ko:r17",
+      "en:r15"
+    ],
+    "note": "20 random items, stratified by module and type, ids disjoint from dev in every language; seed 20261009. Use to compare prompt versions and models. On 2026-10-12 a former set was replaced by the Egyptian set (ar-EG): ar-EG:q01 names an Egyptian asker; the other replaced items have identical question text. On 2026-10-12 the Arabic items were moved to the Modern Standard Arabic set (ar), the text used in the earlier runs; ar-SY and ar-EG are now dialect sets. On 2026-10-12 the Turkish set was dropped (no reviewer available); its items here were replaced by the same question in en, or in ar for questions that name the asker's nationality. Runs before that date used the Turkish text."
+  },
+  "tax": {
+    "items": [
+      "ko:t01",
+      "en:t02",
+      "en:t03",
+      "ar:t04",
+      "it-IT:t05",
+      "ar:t06",
+      "ar:t07",
+      "ar:t08",
+      "it-IT:t09",
+      "ko:t10",
+      "en:t11",
+      "en:t12",
+      "ar:t13",
+      "ar:t14",
+      "it-IT:t15"
+    ],
+    "note": "all 15 tax-module questions once, languages rotated; the localized items t05-t07 use a non-Korean asker (it-IT for the EU spouse rule, ar-SY for Kindergeld, tr-TR for foreign income). ar-EG:t08 and ar-EG:t14 replace items of a former set (identical text). Not yet run with the LLM. On 2026-10-12 the Arabic items were moved to the Modern Standard Arabic set (ar), the text used in the earlier runs; ar-SY and ar-EG are now dialect sets. On 2026-10-12 the Turkish set was dropped (no reviewer available); its items here were replaced by the same question in en, or in ar for questions that name the asker's nationality. Runs before that date used the Turkish text."
+  }
+}

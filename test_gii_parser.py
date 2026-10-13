@@ -99,6 +99,9 @@ def test_sgb_books_and_tax_laws():
     assert _targets("nach § 8 SGB IV", law="EStG") == [("SGB IV", "8", None, None)]
     assert _targets("§ 1 des Einkommensteuergesetzes", law="AO") == [("EStG", "1", None, None)]
     assert _targets("nach § 138 der Abgabenordnung", law="EStG") == [("AO", "138", None, None)]
+    # missing space in the official text (BMG § 3): still Absatz 4, no crash
+    assert _targets("Rechte in § 19 Absatz 1 Satz 3 und § 50 Absatz 4den Namen", law="BMG") == [
+        ("BMG", "19", "1", None), ("BMG", "50", "4", None)]
     # details that used to stop the chain before the law name
     assert _targets("nach § 180 Absatz 1 Satz 1 Nummer 2 Buchstabe a oder b der Abgabenordnung", law="EStG") == [
         ("AO", "180", "1", None)]

@@ -17,17 +17,26 @@ LAWS = {
     "AO": "ao_1977",               # Abgabenordnung (Fiscal Code)
     "SGB IV": "sgb_4",             # Sozialgesetzbuch IV: common rules of social insurance (minijobs, employer duties)
     "SGB VI": "sgb_6",             # Sozialgesetzbuch VI: statutory pension insurance
-    "AufenthV": "aufenthv",        # Aufenthaltsverordnung (Residence Ordinance), not indexed yet
+    "SGB V": "sgb_5",              # Sozialgesetzbuch V: statutory health insurance
+    "VVG": "vvg_2008",             # Versicherungsvertragsgesetz: duty to hold health insurance (§ 193)
+    "FreizügG/EU": "freiz_gg_eu_2004",  # Freizügigkeitsgesetz/EU: residence of EU citizens
+    "BMG": "bmg",                  # Bundesmeldegesetz: registering an address (Anmeldung)
+    "StAG": "stag",                # Staatsangehörigkeitsgesetz: citizenship and naturalisation
+    "KSVG": "ksvg",                # Künstlersozialversicherungsgesetz: social insurance for artists and publicists
+    "AufenthV": "aufenthv",        # Aufenthaltsverordnung (Residence Ordinance): visas, visa-free entry
 }
 
 # The laws that are indexed and searched.
-CORPUS = ["AufenthG", "BeschV", "AsylG", "EStG", "AO", "SGB IV", "SGB VI"]
+CORPUS = ["AufenthG", "AufenthV", "BeschV", "AsylG", "FreizügG/EU", "StAG", "BMG",
+          "EStG", "AO", "SGB IV", "SGB VI", "SGB V", "VVG", "KSVG"]
 
 # What the corpus covers, and nearby areas it does not, as used in prompts and the app.
-TOPIC = "residence, employment, asylum, income tax and pension insurance law"
-TOPIC_DE = "Aufenthalts-, Beschäftigungs-, Asyl-, Einkommensteuer- und Rentenversicherungsrecht"
-OUT_OF_SCOPE = ("health, unemployment and long-term care insurance, VAT, church tax, double taxation treaties, "
-                "citizenship, registration, benefits for asylum seekers")
+TOPIC = ("residence, EU free movement, employment, asylum, citizenship, registration, income tax, "
+         "pension, health and artists' social insurance law")
+TOPIC_DE = ("Aufenthalts-, Freizügigkeits-, Beschäftigungs-, Asyl-, Staatsangehörigkeits-, Melde-, Einkommensteuer-, "
+            "Renten- und Krankenversicherungsrecht")
+OUT_OF_SCOPE = ("unemployment and long-term care insurance, VAT, church tax, the broadcasting fee (Rundfunkbeitrag), "
+                "double taxation treaties, benefits for asylum seekers")
 
 
 def corpus_names(conj: str = "and") -> str:

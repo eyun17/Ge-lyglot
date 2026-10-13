@@ -2,11 +2,25 @@
 Ask about German law in your own language, get answers grounded in the original German statute text.
 
 Ge-lyglot, which is a short name of Gesetz-Polyglot, is a retrieval-augmented QA system for the German laws that matter most to foreigners living in Germany.
-The current corpus covers residence, employment and asylum law: the Residence Act (**AufenthG**), the Employment Ordinance (**BeschV**) and the Asylum Act (**AsylG**); and income tax and pension insurance: the Income Tax Act (**EStG**), the Fiscal Code (**AO**) and Books IV and VI of the Social Code (**SGB IV**, **SGB VI**).
-Users ask in Korean, English, Turkish, Arabic, Italian or German; the system retrieves the German statute text, answers with citations, and checks that every citation points to a passage it actually retrieved.
-The project compares four retrieval conditions, several LLMs and two prompt versions on the same questions, to see which setup finds the legal basis for an answer most reliably and answers correctly.
+Users ask in their own language; the system retrieves the German statute text, answers in the language of the question with citations, and checks that every citation points to a passage it actually retrieved.
+The project compares four retrieval conditions, several LLMs and three prompt versions on the same questions, to see which setup finds the legal basis for an answer most reliably and answers correctly. It is evaluated in Korean, English, German, Arabic (Modern Standard Arabic and Syrian dialect) and Italian.
+
+The corpus has fourteen federal laws (10,029 Absatz-level chunks):
+
+| Area | Laws |
+|---|---|
+| Residence and work | **AufenthG** (Residence Act), **AufenthV** (Residence Ordinance), **BeschV** (Employment Ordinance) |
+| EU citizens | **FreizügG/EU** (Freedom of Movement Act) |
+| Asylum | **AsylG** (Asylum Act) |
+| Citizenship and registration | **StAG** (Nationality Act), **BMG** (Federal Registration Act) |
+| Tax | **EStG** (Income Tax Act), **AO** (Fiscal Code) |
+| Social insurance | **SGB IV** (common rules), **SGB VI** (pension), **SGB V** (health), **VVG** § 193 (duty to have health insurance), **KSVG** (artists' social insurance) |
+
+Not in the corpus: unemployment and long-term care insurance, VAT, church tax, the broadcasting fee (Rundfunkbeitrag), double taxation treaties, benefits such as Bürgergeld, and EU regulations (visa list, Schengen rules, the 2024 asylum regulations). Questions on these are answered with a referral or refused.
 
 > **This is not legal or tax advice.** Use GesetzPolyglot only as an aid. The author accepts no liability for overreliance on its answers or for misuse; see [Disclaimer](#disclaimer).
+
+<a id="disclaimer"></a>
 
 ## ⚠️ Disclaimer ⚠️
 
@@ -27,8 +41,9 @@ The same notice is shown in the web app, and every answer ends with a short vers
 gesetze-im-internet.de XML
         │  gii_parser.py      dated snapshots → Absatz-level chunks + cross-references
         ▼
-data/processed/chunks.jsonl   5,798 chunks (AufenthG 916, BeschV 88, AsylG 374,
-                              EStG 994, AO 1,427, SGB IV 705, SGB VI 1,294)
+data/processed/chunks.jsonl   10,029 chunks (AufenthG 916, AufenthV 293, BeschV 88, AsylG 374,
+                              FreizügG/EU 89, StAG 84, BMG 191, EStG 994, AO 1,427,
+                              SGB IV 705, SGB VI 1,294, SGB V 2,911, VVG 524, KSVG 139)
         │  retrieval.py       bge-m3 embeddings, BM25, vector store (numpy | Chroma)
         ▼
 data/index/
@@ -47,8 +62,11 @@ app.py (Gradio UI) · eval_retrieval.py (retrieval, no LLM) · eval_answers.py (
 | [agent.py](agent.py) | Splits the question into sub-questions, follows cross-references, checks whether the evidence is sufficient, and retries retrieval up to 2 times. |
 | [app.py](app.py) | Gradio web UI in English, with a small German gloss under each element (German is the language of the statutes). Answers come in the language of the question. |
 | [eval_retrieval.py](eval_retrieval.py) | Section-level recall@k, no LLM. |
+| [query_translate.py](query_translate.py) | Experiment: translates questions with a local NLLB-200 model before retrieval (non-commercial license, not used by the app). |
+| [llm_cli.py](llm_cli.py) | `--provider` / `--model` options and `.env` loading, shared by every script that calls an LLM. |
 | [eval_answers.py](eval_answers.py) | End-to-end evaluation with the LLM on chosen items: recall, answer status, citations, cost. |
-| [evalset/](evalset/) | Evaluation questions (core set, refugee module and tax module, six sets each) and [splits.json](evalset/splits.json). |
+| [evalset/](evalset/) | Evaluation questions: 60 questions, the same in each of six language files; see [evalset/README.md](evalset/README.md) and [splits.json](evalset/splits.json). The first version is kept in `evalset/archive/v1/`. |
+| [review/](review/) | Translation review workbooks (.xlsx) for native speakers: German, Arabic (MSA), Syrian dialect, Italian. Built by [make_review.py](review/make_review.py), returned workbooks are applied with [apply_review.py](review/apply_review.py). |
 
 ### The four conditions
 
@@ -66,11 +84,11 @@ All four share the same final step, `rag.finish()`: the same answer prompt and t
 Tested with Python 3.11.
 
 ```bash
-git clone https://github.com/<user>/GesetzPolyglot.git
+git clone https://github.com/eyun17/Ge-lyglot.git
 ```
 
 ```bash
-cd GesetzPolyglot
+cd Ge-lyglot
 ```
 
 ```bash
@@ -96,11 +114,14 @@ cp .env.example .env
 | Variable | Default | Notes |
 |---|---|---|
 | `OPENAI_API_KEY` | | required for OpenAI |
-| `LLM_PROVIDER` | `openai` | `openai` or `anthropic` |
+| `LLM_PROVIDER` | `openai` | `openai`, `anthropic` or `ollama` (local), see [Choose the LLM](#4-choose-the-llm-api-or-local) |
 | `LLM_MODEL` | `gpt-5.4-mini` / `claude-sonnet-5-5` | chosen from the [answer evaluation](#answer-evaluation-with-the-llm) |
 | `LLM_REASONING_EFFORT` | `low` | `none`, `low`, `medium`, `high`; empty = not sent |
-| `OPENAI_BASE_URL` | | for compatible servers, e.g. `http://localhost:11434/v1` (Ollama) |
-| `PROMPT_VERSION` | `v2` | `v1` or `v2`, see [Answer evaluation](#answer-evaluation-with-the-llm) |
+| `OPENAI_BASE_URL` | | for other OpenAI-compatible servers |
+| `OLLAMA_MODEL` | `qwen3:8b` | model for `ollama` |
+| `OLLAMA_URL` | `http://localhost:11434` | |
+| `OLLAMA_NUM_CTX` | `16384` | context window for local models |
+| `PROMPT_VERSION` | `v3` | `v1`, `v2` or `v3`, see [Answer evaluation](#answer-evaluation-with-the-llm) |
 
 ## Usage
 
@@ -146,6 +167,37 @@ python app.py
 
 The app runs at http://127.0.0.1:7860; `--share` creates a temporary public link.
 
+### 4. Choose the LLM: API or local
+
+Every script that calls an LLM (`app.py`, `rag.py`, `eval_answers.py`) takes `--provider` and `--model`. They override `.env`.
+
+| Provider | Runs | Model setting | Default |
+|---|---|---|---|
+| `openai` | OpenAI API, costs money | `LLM_MODEL` | `gpt-5.4-mini` |
+| `anthropic` | Anthropic API, costs money | `LLM_MODEL` | `claude-sonnet-5-5` |
+| `ollama` | locally with [Ollama](https://ollama.com), free | `OLLAMA_MODEL` | `qwen3:8b` |
+
+A local model needs Ollama running and the model pulled once:
+
+```bash
+ollama pull qwen3:8b
+```
+
+```bash
+python app.py --provider ollama
+```
+
+```bash
+python eval_answers.py --split validation --provider ollama --model llama3:8b
+```
+
+```bash
+python app.py --provider openai --model gpt-5.4
+```
+
+For Ollama the code uses its native API rather than the OpenAI-compatible one, so it can set the context window (`OLLAMA_NUM_CTX`, default 16,384 tokens; Ollama's own default is a few thousand and silently cuts long prompts, here the answer rules) and switch off "thinking" for reasoning models such as qwen3. On a 16 GB Mac, 8B models fit next to the embedding model; expect tens of seconds per answer and a few minutes per agent question.
+
+
 ## Vector stores
 
 `retrieval.py` has two stores with the same interface. Which one is used is recorded as `store` in `data/index/meta.json`.
@@ -156,40 +208,32 @@ The app runs at http://127.0.0.1:7860; `--share` creates a temporary public link
 BM25 is not part of Chroma and always runs in memory; hybrid fuses the store's dense results with BM25 via RRF.
 `emb.npy` is kept even when Chroma is used: the agent uses it to rank Absätze within a section, and it serves as the exact-search baseline.
 
-At 5,798 chunks numpy is still fast enough. Chroma was added not for speed but for persistence, metadata filtering, and room to grow when more statutes (e.g. AufenthV) are added.
+At 10,029 chunks numpy is still fast enough. Chroma was added not for speed but for persistence, metadata filtering, and room to grow as more statutes are added.
 
-**Verification.** On the real bge-m3 index, all 324 evaluation questions with gold sections (156 core, 90 refugee, 78 tax) were run against both stores. On the seven-law corpus (5,798 chunks) the dense top-8 lists were identical for 317/324 questions, BM25 for 324/324 and hybrid for 315/324; on the earlier three-law corpus (1,378 chunks) dense had matched 246/246. HNSW's approximation starts to show as the corpus grows, but it only reordered results: recall was the same for both stores in every mode and on both corpora.
+**Verification.** On the real bge-m3 index, the 336 questions of evalset v2 that have gold sections give almost the same recall with both stores (dense 0.354 numpy vs 0.353 Chroma); dense returned identical top-8 lists for 307/336. Earlier, with the 324 questions of v1: on the thirteen-law corpus (9,890 chunks) the top-8 lists were identical for 313/324 questions with dense, 324/324 with BM25 and 309/324 with hybrid; on the three-law corpus (1,378 chunks) dense had matched every question. HNSW's approximation shows as the corpus grows, but it only reordered results: recall was the same for both stores in every mode and on every corpus size.
 
 ## Evaluation
 
-The core evaluation set has 30 questions in six sets (the [refugee module](#refugee-and-protection-module) and the [tax module](#tax-and-pension-module) below are separate sets). Each set is a language plus the nationality of the person asking:
+The evaluation set has 60 questions, and every one of them is asked in six languages: Korean (original), English, German, Modern Standard Arabic, Syrian dialect and Italian. The nationality of the person asking is written into the question itself ("I'm Portuguese and work at the head office of a Spanish company…"), not tied to the language, so a difference between two sets is a difference of language only. Each question records that nationality as `persona_country` and `persona_group` (`eu`, `non_eu`, `none` when no nationality is given, `both`). [evalset/README.md](evalset/README.md) explains the fields; the first version of the set is archived (see [Evaluation set v1](#evaluation-set-v1-archived)).
 
-| Set | File | Asker |
-|---|---|---|
-| `ko` | [evalset_draft_ko.jsonl](evalset/evalset_draft_ko.jsonl) | Korean (original) |
-| `en` | [evalset_draft_en.jsonl](evalset/evalset_draft_en.jsonl) | Korean (translation of `ko`) |
-| `tr-TR` | [evalset_draft_tr.jsonl](evalset/evalset_draft_tr.jsonl) | Turkish citizen |
-| `ar-SY` | [evalset_draft_ar_sy.jsonl](evalset/evalset_draft_ar_sy.jsonl) | Syrian citizen |
-| `ar-EG` | [evalset_draft_ar_eg.jsonl](evalset/evalset_draft_ar_eg.jsonl) | Egyptian citizen |
-| `it-IT` | [evalset_draft_it.jsonl](evalset/evalset_draft_it.jsonl) | Italian citizen (EU) |
+| Set | File | Language | Written by |
+|---|---|---|---|
+| `ko` | [ko.jsonl](evalset/ko.jsonl) | Korean | project owner (original; 10 balance changes drafted by Claude Opus 5.5, checked by the owner) |
+| `en` | [en.jsonl](evalset/en.jsonl) | English | project owner (27) / Claude Opus 5.5 (33 new or changed) |
+| `de` | [de.jsonl](evalset/de.jsonl) | German | Claude Opus 5.5 |
+| `ar` | [ar.jsonl](evalset/ar.jsonl) | Modern Standard Arabic | Claude Opus 5.5 |
+| `ar-SY` | [ar_sy.jsonl](evalset/ar_sy.jsonl) | Syrian (Levantine) dialect | Claude Opus 5.5 |
+| `it` | [it.jsonl](evalset/it.jsonl) | Italian | Claude Opus 5.5 |
 
-Turkish and Syrian communities are among the largest immigrant groups in Germany. The Egyptian set adds a second Arabic-speaking group whose typical path is study and skilled work rather than asylum; both Arabic sets are written in Modern Standard Arabic and differ only where the asker's nationality is named. Italian adds an EU citizen, for whom the Residence Act largely does not apply. Each file has a readable `.md` companion. The Turkish, Arabic and Italian translations have not yet been reviewed by native speakers.
+The questions cover work and residence permits (21), tax (11), residence and settlement (5), study and Ausbildung (5), social, pension and artists' insurance (4), registration (3), visas and visa-free stays (3), citizenship (2), health insurance (2), EU free movement, family members of EU citizens and the broadcasting fee. 21 are `single` (one section answers them), 31 `multi` (several sections) and 8 `refusal` (out of scope, or explain the rules without judging the user's own case). 28 questions name a specific nationality, from every continent: 21 non-EU (Syrian and Korean twice; American, Canadian, Mexican, Colombian, Nigerian, Kenyan, South African, Indian, Vietnamese, Filipino, Chinese, Japanese, Taiwanese, Turkish, Serbian, Ukrainian, Brazilian-Australian) and 7 EU (Italian, Polish, Portuguese, Dutch, French, Austrian, Spanish); three more ask about non-EU or EU citizens in general, and one about both. Ten questions were adjusted after the first draft to even out topics and nationalities ([evalset/README.md](evalset/README.md#evaluation-set-v2)).
 
-| Type | Per set | Expected behavior |
-|---|---|---|
-| `single` | 12 | answerable from one section |
-| `multi` | 12 | needs several sections combined |
-| `refusal` | 6 | out of scope (refuse), or explain the requirements without judging the case |
+German was added as a question language: it is the language of the statutes, so it shows how much of the gap is language and how much is everyday words against legal ones. Syrian dialect stays because people type in dialect; MSA is its baseline. Text that was not written by the project owner is an AI draft (Claude Opus 5.5, `translated_by: claude-opus-5-5`), written in this working session without a machine-translation system, and waits for native-speaker review (workbooks in [review/](review/); reviewers are available for Syrian Arabic and Italian).
 
-`it-IT` differs (11 / 10 / 9), see below.
+**Wording.** Questions are written the way people actually ask: permits and offices use the community's usual term, without the German term in parentheses (Korean 블루카드, 안멜둥; English "do the Anmeldung"; Arabic البطاقة الزرقاء; Italian Carta Blu UE, fare l'Anmeldung). The German set uses everyday German ("jobben", "Visum wechseln"), not legal language.
 
-**Wording.** Questions are written the way people in each community actually ask: permits and institutions use the community's usual term, without the German term in parentheses (Korean 블루카드, 아우스빌둥, 안멜둥; English "do an Ausbildung", "do their Anmeldung"; Turkish Mavi Kart, Ausbildung yapmak; Arabic البطاقة الزرقاء, أوسبيلدونغ; Italian Carta Blu UE, fare l'Anmeldung). These terms still need native-speaker review.
+**EU law outside the corpus.** Three questions (n06, n08, n12) depend on EU law that is not on gesetze-im-internet.de: the visa list (Regulation (EU) 2018/1806) and the Schengen 90/180-day rule. The expected answer covers the German part (AufenthG, AufenthV) and names the EU regulation to consult for the rest; prompt v3 asks for this.
 
-**Localization.** Six questions name the asker's nationality (for example "I'm a South Korean citizen…"). In each set they are rewritten for that set's nationality and marked `localized: true`. The nationality changes the correct answer, and sometimes the gold sections:
-- **Turkish, Syrian, Egyptian:** gold sections stay the same, but the answer changes. For example, BeschV § 26 Abs. 1 grants an employment privilege to Korean citizens; it does not list Turkey, Syria or Egypt, so the answer must say there is no privilege.
-- **Italian:** five questions (q01, q15, q24, q27, q29) become out of scope. EU citizens fall under the Freedom of Movement Act, not the Residence Act (AufenthG § 1 Abs. 2 Nr. 1). The expected behavior becomes `refuse_out_of_scope`, with § 1 Abs. 2 as the gold section. `it-IT` therefore has 11 `single`, 10 `multi` and 9 `refusal` items.
-
-Retrieval recall is measured on the 26 questions per set (156 in total) that have gold sections. A gold section given without an Absatz counts as found if any Absatz of that section is retrieved.
+Retrieval recall is measured on the 56 questions per set (336 in total) that have gold sections. A gold section given without an Absatz counts as found if any Absatz of that section is retrieved.
 
 ```bash
 python eval_retrieval.py --store numpy --modes dense bm25 hybrid
@@ -199,90 +243,92 @@ python eval_retrieval.py --store numpy --modes dense bm25 hybrid
 python eval_retrieval.py --store chroma --modes dense bm25 hybrid
 ```
 
-Per-question results are written to `results/retrieval_<store>_<mode>.jsonl`. The commands above evaluate the core set and the [refugee](#refugee-and-protection-module) and [tax](#tax-and-pension-module) modules; each is reported on its own.
+Per-question results are written to `results/retrieval_<store>_<mode>.jsonl`; the v1 results are kept in `results/v1/`.
 
-### Current results (recall@8; seven-law corpus; AufenthG and BeschV as of 2026-10-08, the others as of 2026-10-09)
+### Current results (recall@8; evalset v2; fourteen-law corpus as of 2026-10-13)
 
-| Mode | All | ko | en | tr-TR | ar-SY | ar-EG | it-IT |
-|---|---|---|---|---|---|---|---|
-| dense | **0.561** | 0.532 | 0.571 | 0.590 | 0.571 | 0.571 | 0.532 |
-| bm25 | 0.019 | 0.000 | 0.038 | 0.038 | 0.000 | 0.000 | 0.038 |
-| hybrid | 0.513 | 0.532 | 0.436 | 0.513 | 0.571 | 0.571 | 0.455 |
+| Mode | All | All without dialect | ko | en | de | ar | ar-SY | it |
+|---|---|---|---|---|---|---|---|---|
+| dense | 0.353 | **0.372** | 0.330 | 0.375 | 0.432 | 0.339 | 0.256 | 0.384 |
+| bm25 | 0.029 | 0.035 | 0.000 | 0.018 | 0.122 | 0.000 | 0.000 | 0.036 |
+| hybrid | 0.299 | 0.308 | 0.330 | 0.304 | 0.265 | 0.339 | 0.256 | 0.301 |
 
-On `multi` questions (dense): ko 0.444, en 0.486, tr-TR 0.444, ar-SY 0.444, ar-EG 0.444, it-IT 0.483.
+On `multi` questions (dense): ko 0.274, en 0.290, de 0.360, ar 0.226, ar-SY 0.204, it 0.306.
 
-Numpy and Chroma give identical recall.
+By the asker's nationality (dense, all six sets): no nationality given 0.418 (27 questions with gold sections), non-EU 0.344 (20), **EU 0.198** (8), both 0.000 (1). By topic: work 0.54, citizenship 0.42, tax 0.29, registration 0.28, study 0.27, residence 0.24, social 0.18, health 0.17, visa 0.13.
 
-Until 2026-10-12 the sixth set was Palestinian (`ar-PS`). It was replaced by the Egyptian set (`ar-EG`); the before/after comparisons in the findings below were measured with the Palestinian set. Retrieval results for the Egyptian set equal the Syrian ones in every module.
+Numpy and Chroma give almost the same recall (dense 0.354 vs 0.353; identical top-8 lists for 307 of 336 questions). These numbers are not comparable with v1: the questions are different and harder (more `multi`, new topics).
 
 **Findings and limitations**
-- Dense retrieval with bge-m3 holds up across all languages (0.532–0.590 on the sets with the same gold sections). Cross-lingual retrieval into German works without translation.
-- **German terms in the question help a lot.** An earlier draft wrote terms like "vocational training (Ausbildung)". Removing the German terms in parentheses lowered dense recall from 0.593 to 0.567 overall (Korean 0.571 → 0.532, Arabic 0.628 → 0.590) and left BM25 with almost nothing (0.085 → 0.019). Real users rarely add the German term, so the current numbers are the realistic baseline, and this is the gap `rewrite` is meant to close.
-- **Quadrupling the corpus barely moved dense retrieval.** Adding EStG, AO, SGB IV and SGB VI grew the corpus from 1,378 to 5,798 chunks (×4.2). Dense recall on the core set went from 0.567 to 0.564 and on the refugee module stayed at 0.456. One question lost a gold section (Syrian q24, intra-company transfer: SGB IV § 106a on posted workers entered the top 8), and chunks from the new laws appear in the top 8 for only 12 of the 246 old questions. The previous results are kept in `results/before_tax/`.
-- **A larger corpus did not hurt dense retrieval (AsylG).** Adding AsylG grew the corpus from 1,004 to 1,378 chunks (+37%). Dense recall stayed exactly the same on all 156 questions: no question lost or gained a gold section, and AsylG chunks entered the top 8 for only 7 questions. Hybrid moved a little in both directions (Turkish 0.551 → 0.513, Italian 0.378 → 0.417), because BM25 now pulls AsylG chunks in as noise for 54 questions. The previous results are kept in `results/before_asylg/`.
-- **Scope is not retrieved.** On the five Italian questions where the correct answer is "the Residence Act does not apply to EU citizens", recall is 0 in every mode. Retrieval finds the topic (student work, Blue Card) but never AufenthG § 1 Abs. 2, the section that says the whole topic is out of scope. This is why `it-IT` scores lowest. With prompt v2, `rewrite` adds a scope query and does find § 1 Abs. 2 (see [Answer evaluation](#answer-evaluation-with-the-llm)); a deterministic check that always pulls § 1 Abs. 2 for EU citizens would not depend on the LLM.
-- BM25 barely works, because the questions are not in German. How much that hurts hybrid depends on the script:
-  - Korean and Arabic share no tokens with German. BM25 returns nothing for 25/26 Korean and 25/26 Arabic questions, so hybrid falls back to dense and loses nothing.
-  - English, Turkish and Italian use Latin script, so BM25 almost always finds *some* matching tokens, mostly noise. For English it returns results for 26/26 questions, and hybrid drops from 0.571 to 0.378.
-  - The `rewrite` condition, which turns questions into German queries, targets exactly this.
-- Recall on `multi` questions is low. The `agent` condition, which follows cross-references, targets this.
-- The Syrian and Egyptian sets differ only in the localized questions, and their recall is identical. Nationality wording barely moves retrieval; it matters for the answer, which only the [answer evaluation](#answer-evaluation-with-the-llm) can check.
-- The evaluation set is a draft: gold sections were written by hand and have not yet been verified.
-- Conditions 3–4 (`rewrite`, `agent`) and answer quality are evaluated with the LLM on smaller splits; see [Answer evaluation with the LLM](#answer-evaluation-with-the-llm).
+- **Retrieval follows the topic, not the asker's legal status.** EU-citizen questions score 0.198. For the Portuguese employee posted to Germany (n36), dense retrieves the intra-company-transfer rules for non-EU staff (AufenthG § 19a, BeschV) and never FreizügG/EU § 2; for the French worker's American spouse (n60), it retrieves family reunification under AufenthG §§ 28 and 30, exactly the law that does *not* apply. The question says "Portuguese" or "French", but nothing in the embedding connects that to the Freedom of Movement Act. Scope has to come from the answer step (prompt v3), the `rewrite`/`agent` scope query, or a deterministic check for EU citizens (roadmap).
+- **Naming a nationality does not hurt retrieval, and can help.** On the six questions that got a nationality during the balance pass, dense recall went from 0.417 to 0.454. "I'm Serbian" pulls in BeschV § 26 Abs. 2, the special rule for the Western Balkans, in four of six languages.
+- **German questions help, but less than expected.** German is the best set for dense (0.432), 0.06 above English. Even "Ich ziehe nach Deutschland. Muss ich meinen Wohnsitz anmelden?" does not find BMG § 17 Abs. 1 ("Wer eine Wohnung bezieht, hat sich … anzumelden"). Most of the gap is everyday words against statutory phrasing, not language. BM25 works only on German (0.122), and hybrid still loses to dense there.
+- **The new topics are the hard ones.** Work questions, mostly carried over from v1, score 0.54; visas, health and social insurance stay under 0.2. 17 of the 60 questions score 0 in all six languages, among them registration (n03, n38), the Blue Card waiting time (n15), Ausbildung (n16), student health insurance (n23), the vocabulary-gap tax questions from v1 (n45, n52, n57) and the EU and both questions above (n36, n37, n60). These are the targets for `rewrite` and `agent`.
+- **Syrian dialect still costs the most.** 0.256 against 0.339 for the same questions in MSA (−24%); on v1 the drop was about 40%.
+- **Adding KSVG changed nothing for the old questions.** The Korean and English items whose text and gold are unchanged since v1 give the same dense recall on both corpora. On the artists' question (n10), KSVG chunks reach the top 8 in every language, but KSVG § 1 (who is insured) only in Syrian dialect; § 1 has no title in the official XML.
+- The gold sections were written by hand and checked against the statute text, but are not yet verified by a lawyer, and the translations are not yet reviewed.
 
-### Refugee and protection module
+### Evaluation set v1 (archived)
 
-A second, separate question set covers refugee status, subsidiary protection, Duldung, family reunification and the asylum procedure: 17 questions (9 `single`, 4 `multi`, 4 `refusal`), files `evalset/evalset_refugee_<set>.jsonl` with readable `.md` companions. The questions do not mention nationality, so they are identical in all six sets and comparable across languages. They are reported separately from the core set (`module: refugee`), because they are different questions. Gold sections were checked against the statute text but are not yet `verified`.
+The first evaluation set (until 2026-10-12, now in [evalset/archive/v1/](evalset/archive/v1/)) tied the asker to the language: Arabic asked as a Syrian (or Egyptian) citizen, Italian as an Italian, English and Korean as a Korean. It had 62 questions in three modules (core residence and work, refugee and protection, tax and pension) and an Egyptian-dialect set; a former set was replaced on 2026-10-12 and a Turkish set was dropped for lack of a reviewer. Because the nationality changed with the language, differences between sets mixed language and legal status, which is why v2 writes the nationality into the question. The refugee module was dropped; the core and tax questions moved into v2.
 
-| Mode | All | ko | en | tr-TR | ar-SY | ar-EG | it-IT |
-|---|---|---|---|---|---|---|---|
-| dense | **0.456** | 0.400 | 0.467 | 0.467 | 0.400 | 0.400 | 0.600 |
-| bm25 | 0.022 | 0.000 | 0.000 | 0.100 | 0.000 | 0.000 | 0.033 |
-| hybrid | 0.394 | 0.400 | 0.367 | 0.433 | 0.400 | 0.400 | 0.367 |
+Dense recall@8 on v1 (thirteen-law corpus, without KSVG):
 
-- **The misses are not about language.** Six questions (r01, r04, r08, r11, r13, r15) score 0 in all six languages. The cause is how the statutes are written: they rarely say "refugee". AufenthG § 26 Abs. 3, the settlement permit for refugees, only says "a residence permit under § 25 Absatz 1 or 2"; § 25 Abs. 2 and § 12a Abs. 1 refer to "international protection under Regulation (EU) 2024/1347". A question that says "refugee" has nothing to match. Candidate fixes: add the titles of referenced sections to the indexed text (so § 26 Abs. 3 also carries "Aufenthalt aus humanitären Gründen"), or let the `agent` follow these references.
-- Some misses do depend on language: the asylum lawsuit deadline (r09, AsylG § 74 Abs. 1) is found in Korean and Italian but not in the other four.
+| Module | Questions | All | ko | en | ar | ar-SY | ar-EG | it-IT |
+|---|---|---|---|---|---|---|---|---|
+| core | 30 | 0.468 | 0.513 | 0.571 | 0.532 | 0.397 | 0.301 | 0.494 |
+| refugee | 17 | 0.400 | 0.400 | 0.467 | 0.400 | 0.233 | 0.300 | 0.600 |
+| tax | 15 | 0.297 | 0.449 | 0.321 | 0.256 | 0.090 | 0.192 | 0.474 |
 
-### Tax and pension module
+What v1 showed:
+- **German terms in the question help.** An early draft wrote "vocational training (Ausbildung)". Removing the German terms in parentheses lowered dense recall from 0.593 to 0.567 and BM25 from 0.085 to 0.019. Real users rarely add them, so both versions are written without.
+- **More laws barely hurt, unless they are close to the topic.** Adding AsylG (+37% chunks) left dense recall unchanged, and EStG, AO, SGB IV and SGB VI (×4.2) moved it from 0.567 to 0.564. AufenthV, FreizügG/EU, StAG, BMG, SGB V and VVG (×1.7) lowered the core set from 0.484 to 0.468 and tax from 0.323 to 0.297, mostly because AufenthV, the ordinance under AufenthG, competes on the same topics.
+- **Scope is not retrieved.** For the Italian EU-citizen questions retrieval found the topic but never AufenthG § 1 Abs. 2, the section that says the Residence Act does not apply. v2 shows the same pattern for FreizügG/EU.
+- **BM25 needs German.** It returned nothing for Korean and Arabic, and on English and Italian it added noise: English hybrid fell from 0.571 to 0.378.
+- **Dialect, not nationality, cost recall.** The same questions gave 0.454 in MSA, 0.278 in Syrian and 0.275 in Egyptian dialect; Syrian and Egyptian askers scored the same in MSA.
+- **The statutes rarely use the user's words.** Refugee questions missed AufenthG § 26 Abs. 3, which says "a residence permit under § 25 Absatz 1 or 2" rather than "refugee"; tax questions missed *Einspruch* (AO § 347), *Veranlagung* (EStG § 46) and *gewöhnlicher Aufenthalt* (AO § 9).
+- **Index details matter.** EStG sections without a title in the XML now get the nearest outline heading (tax module 0.357 → 0.382). Very long chunks (EStG § 3 is 54,000 characters) are only partly seen by the embedding model, which reads about 1,024 tokens.
 
-A third question set covers what foreigners typically ask about the money taken from their pay and their income: tax residency, freelance registration, Werkstudent and Minijob contributions, getting taxes or contributions back when leaving, joint taxation with a spouse abroad, Kindergeld, foreign income, the Steuer-ID, tax returns and deadlines, and objections against the tax office. 15 questions (3 `single`, 8 `multi`, 4 `refusal`), files `evalset/evalset_tax_<set>.jsonl` with readable `.md` companions. t01–t03 were written by the project owner, the others come from an agreed idea list. Gold sections were checked against the statute text but are not yet `verified`.
+#### Experiment: translating the question before retrieval
 
-- **The questions mix tax and social insurance on purpose.** Two of the three questions the project owner wrote are really about pension insurance, not tax: for people new to Germany, everything taken from the payslip looks alike. This is why the corpus has SGB VI (pension insurance) and SGB IV (social insurance rules, Minijobs, employer duties) next to EStG and AO. Health, unemployment and long-term care insurance (SGB V, III, XI), VAT, church tax and double taxation treaties are not in the corpus; t12 and t13 test that the model refuses them.
-- **Three questions are localized.** t05–t07 name the asker's country. For the Italian (EU) set two answers change: a spouse living in the EU can be treated as resident for joint taxation (EStG § 1a Abs. 1 Nr. 2), and Kindergeld for EU citizens does not depend on the residence permit rules in EStG § 62 Abs. 2.
-- t03 ("can I get my taxes back when I go home?") rests on a half-wrong assumption: taxes are not refunded for leaving, but over-withheld tax comes back with a tax return (EStG § 46 Abs. 2), and pension contributions can be refunded 24 months after insurance ends (SGB VI § 210).
+Measured on v1. [query_translate.py](query_translate.py) translates each question with Meta's NLLB-200 (`nllb-200-distilled-600M`, local, no API), which has its own codes for North Levantine (`apc_Arab`) and Egyptian Arabic (`arz_Arab`). [eval_retrieval.py](eval_retrieval.py) then searches the translation (`--translate deu_Latn`) or both and fuses the rankings with RRF (`--fuse`).
 
-| Mode | All | ko | en | tr-TR | ar-SY | ar-EG | it-IT |
-|---|---|---|---|---|---|---|---|
-| dense | **0.382** | 0.449 | 0.423 | 0.359 | 0.282 | 0.282 | 0.500 |
-| bm25 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 |
-| hybrid | 0.276 | 0.449 | 0.231 | 0.167 | 0.282 | 0.282 | 0.244 |
+```bash
+python eval_retrieval.py --modes dense --translate deu_Latn --fuse
+```
 
-- **The hardest module so far, and again not because of language.** Four questions (t03, t04, t10, t15) score 0 in all six languages. The words people use are not the words of the statutes: "objecting to the tax office" is *Einspruch* (AO § 347), "getting tax back" is *Veranlagung* (EStG § 46), "living here for six months" is *gewöhnlicher Aufenthalt* (AO § 9), and the 60 months of pension contributions for permanent residence sit in item 3 of a nine-item list (AufenthG § 9 Abs. 2). This is the gap the `rewrite` and `agent` conditions are meant to close; they have not been run on this module yet.
-- **BM25 finds no gold section at all** on this module, in any language.
-- **Some EStG sections have no title in the official XML** (57 chunks, e.g. § 18, § 1a, § 34c). They now get the nearest outline heading as title in the indexed text ("Selbständige Arbeit", "Steuerermäßigung bei ausländischen Einkünften"). This raised dense recall on the module from 0.357 to 0.382 and changed nothing for the other modules.
-- **Very long EStG chunks.** EStG § 3 (tax-free income) is one 54,000-character chunk, and 37 EStG chunks exceed 4,000 characters. The embedding model reads about the first 1,024 tokens, so the rest of these chunks is invisible to dense search. Splitting them by item is on the roadmap.
+| Set | Original | Translated to German | Original + German, fused |
+|---|---|---|---|
+| ko | 0.475 | 0.398 | 0.485 |
+| en | 0.506 | 0.534 | 0.540 |
+| ar (MSA) | 0.454 | 0.466 | 0.472 |
+| ar-SY (dialect) | 0.278 | 0.407 | **0.432** |
+| ar-EG (dialect) | 0.275 | 0.358 | **0.398** |
+| it-IT | 0.543 | 0.426 | 0.509 |
+| **All** | 0.422 | 0.432 | **0.473** |
+
+Fusion closes half to three quarters of the dialect gap without hurting the other languages much; translating alone hurts Korean and Italian, because the translation loses details (دائرة الأجانب, Ausländerbehörde, became "Auslandsministerium"). **The NLLB-200 weights are CC-BY-NC 4.0 (non-commercial)**, so this is an experiment only and not part of the app; LLM `rewrite` is the commercial alternative. It has not been re-run on v2 yet.
 
 ### Answer evaluation with the LLM
 
 [eval_answers.py](eval_answers.py) runs the whole pipeline, LLM included, on chosen items. For each condition it records the recall@8 of what the answer step receives, whether the answer's status matches `expected_behavior`, citations that are not in the retrieved text, LLM calls, latency and tokens. This costs money, so it runs on small named splits from [evalset/splits.json](evalset/splits.json):
 
-- `dev`: 10 hard items (dense recall 0) used to diagnose prompt v1 and write v2.
-- `validation`: 20 random items, stratified by module and type. Their question ids never appear in `dev`, in any language. Used to check that v2 holds up on questions it was not written for.
-- `tax`: all 15 tax-module questions once, languages rotated, with the localized items given to non-Korean askers. Not run yet.
+- `validation`: 30 of the 60 v2 questions, half of each type, each asked in one of the six sets (5 per set). Not run yet.
+- `smoke`: 6 other questions, one per set, to check that a run works end to end. Not run yet.
 
-The `dev` and `validation` results below were measured on the three-law corpus, before the tax and pension laws were added, and with the former Palestinian set (four items, now `ar-EG` with the same question text except validation q01).
+All results below were measured on **evalset v1**, with its `dev` (10 hard items used to write prompt v2) and `validation` (20 random items) splits, on the three-law corpus; those splits are kept in [evalset/archive/v1/splits.json](evalset/archive/v1/splits.json). Prompt v3 has not been run with the LLM yet. A v2 `validation` run with gpt-5.4-mini (30 items × 4 conditions) should cost about $0.65, extrapolated from the v1 runs.
 
 ```bash
 python eval_answers.py --split validation
 ```
 
 ```bash
-python eval_answers.py --split dev --prompts v1 --model gpt-5.4
+python eval_answers.py --split smoke --prompts v2 --model gpt-5.4
 ```
 
-Without `--model` and `--prompts` it uses the defaults (gpt-5.4-mini, v2).
+Without `--model` and `--prompts` it uses the defaults (gpt-5.4-mini, v3).
 
-**Prompt versions.** Both live in [rag.py](rag.py) and [agent.py](agent.py); `PROMPT_VERSION` (or `--prompts`) picks one, v2 by default. Compared with v1, v2 tells the model to check scope first (EU/EEA citizens: AufenthG § 1 Abs. 2, plus a scope query in `rewrite` and the agent's plan), to use `explain_without_judgment` only when asked to predict the user's own case, to answer the covered part of a question instead of refusing, to read each provision's Absatz, Satz and named group exactly, to say when the user's country is not in a list, and to correct wrong assumptions. A status line that does not name exactly one status is scored as `unclear` (wrong).
+**Prompt versions.** All three live in [rag.py](rag.py) and [agent.py](agent.py); `PROMPT_VERSION` (or `--prompts`) picks one, v3 by default. v3 is v2 with two changes: EU/EEA citizens are answered from the Freedom of Movement Act (FreizügG/EU), which is now in the corpus, instead of being refused; and when a provision points to EU law outside the corpus (the visa list, Regulation (EU) 2018/1806; the Schengen rules on short stays; the asylum regulations), the model answers the German part, names the regulation and advises the user to consult it, without filling in its content. v3 has not been run with the LLM yet. Compared with v1, v2 tells the model to check scope first (EU/EEA citizens: AufenthG § 1 Abs. 2, plus a scope query in `rewrite` and the agent's plan), to use `explain_without_judgment` only when asked to predict the user's own case, to answer the covered part of a question instead of refusing, to read each provision's Absatz, Satz and named group exactly, to say when the user's country is not in a list, and to correct wrong assumptions. A status line that does not name exactly one status is scored as `unclear` (wrong).
 
 **Validation** (20 items × 4 conditions = 80 answers per run):
 
@@ -293,6 +339,9 @@ Without `--model` and `--prompts` it uses the defaults (gpt-5.4-mini, v2).
 | gpt-5.4-mini | v2 | **79/80** | 0 | 0.471 | 0.765 | $0.42 |
 | gpt-5.4 | v1 | 60/80 | 0 | 0.588 | 0.676 | $1.35 |
 | gpt-5.4 | v2 | **79/80** | 0 | 0.647 | 0.647 | $1.51 |
+| llama3 8B, local (Ollama) ¹ | v2 | 37/80 | 33 | 0.235 | 0.265 | $0 |
+
+¹ Run later, on the seven-law corpus with the Arabic items in the MSA set; the API rows were measured on the three-law corpus.
 
 Without the LLM, the same 20 items give dense 0.765 and hybrid 0.588.
 
@@ -309,6 +358,7 @@ Without the LLM, the same 20 items give dense 0.765 and hybrid 0.588.
 Costs are API token counts times list prices (gpt-5.4: $2.50 / $15 per 1M input / output tokens; gpt-5.4-mini: $0.75 / $4.50 and gpt-5.4-nano: $0.20 / $1.25, as listed by third-party trackers). All LLM experiments so far cost about $5.40. Average time per question with the agent on the validation set: nano 14 s, mini 10 s, gpt-5.4 24 s.
 
 **Findings**
+- **A local 8B model is not good enough yet.** llama3 8B on a 16 GB M2 got 37/80. 33 answers had no valid status line, it answered 5 out-of-scope questions instead of refusing, and its rewritten queries cite made-up sections ("§ 25 Abs. 3 EStG"), so `rewrite` and `agent` retrieved far less (0.24–0.27) than searching the question directly (0.765). Some answers were plainly wrong, e.g. "you are not required to notify the immigration office" when AufenthG § 82 Abs. 6 requires it within two weeks. It also took about 90 seconds per agent question. Newer 8B models (e.g. qwen3:8b) may do better and can be tested the same way with `--provider ollama --model …`.
 - **gpt-5.4-mini matches gpt-5.4 at about a quarter of the cost.** With v2 it got 79/80 on validation (same as gpt-5.4), made no format errors, and was the fastest. On the dev items it gave correct answers where nano failed: it cited § 1 Abs. 2 for the Italian EU-citizen question, separated § 26 Abs. 3 (refugees) from Abs. 4 (subsidiary protection), and corrected the Blue Card premise. It is now the default model.
 - **v2's own examples can leak into citations.** Once, mini cited AufenthG § 1 Abs. 2 although it was not retrieved; the prompt mentions it in the scope rule. The citation check flags this (`invalid`), which is what it is for.
 - **v2 holds up on unseen items.** Status matches rose from 58 to 71 (nano) and from 60 to 79 (gpt-5.4). The main v1 error, answering a plain question about the rules with "I can't judge your case", almost disappears.
@@ -338,26 +388,29 @@ python retrieval.py build --store chroma
 
 3. Re-run the evaluation and compare with the previous corpus.
 
-AsylG was the first law added this way; EStG, AO, SGB IV and SGB VI followed. They needed three parser changes: the Social Code cites its own books by ordinal ("§ 28e des Vierten Buches" = SGB IV) and its own book as "dieses Buches"; chains like "§§ 286 ff." and "Buchstabe a oder b der Abgabenordnung" used to stop before the law name; and law abbreviations may contain a space ("SGB VI"). The same fixes also corrected a few old AufenthG cross-references (e.g. § 87 Abs. 2 pointed to AufenthG §§ 7 and 23 instead of SGB II and SGB XII). Its text is the version after the 2024 EU asylum reform (in force since June 2026): 86 of its 374 chunks refer to EU Regulations 2024/1347, 2024/1348 or 2024/1351, which are not on gesetze-im-internet.de and not in the corpus. The answer prompt tells the model to say so instead of filling in the details.
+AsylG was the first law added this way; EStG, AO, SGB IV and SGB VI followed. They needed three parser changes: the Social Code cites its own books by ordinal ("§ 28e des Vierten Buches" = SGB IV) and its own book as "dieses Buches"; chains like "§§ 286 ff." and "Buchstabe a oder b der Abgabenordnung" used to stop before the law name; and law abbreviations may contain a space ("SGB VI"). The same fixes also corrected a few old AufenthG cross-references (e.g. § 87 Abs. 2 pointed to AufenthG §§ 7 and 23 instead of SGB II and SGB XII). AufenthV, FreizügG/EU, StAG, BMG, SGB V and VVG followed on 2026-10-12, and KSVG (artists' social insurance) on 2026-10-13; for them the parser learned to keep a slash out of folder names (`FreizügG/EU` is stored under `data/raw/FreizügG_EU/`) and to survive a missing space in the official text ("§ 50 Absatz 4den" in BMG § 3). StAG has neither section titles nor an outline in the XML, so its chunks are indexed by text only. AsylG's text is the version after the 2024 EU asylum reform (in force since June 2026): 86 of its 374 chunks refer to EU Regulations 2024/1347, 2024/1348 or 2024/1351, which are not on gesetze-im-internet.de and not in the corpus. The answer prompt tells the model to say so instead of filling in the details.
 
 ## Roadmap
 
-**Tax and pension, next steps.** EStG, AO, SGB IV and SGB VI are in the corpus and the [tax module](#tax-and-pension-module) is written. Still open:
-- run the `tax` split with the LLM (`rewrite`, `agent`), the conditions meant to close the vocabulary gap
+**Tax, pension and health, next steps.** EStG, AO, SGB IV, SGB VI, SGB V, VVG and KSVG are in the corpus, and evalset v2 has 11 tax and 5 social, pension and health questions. Still open:
+- run the v2 `validation` split with the LLM (`rewrite`, `agent`, prompt v3), the conditions meant to close the vocabulary gap
 - split very long chunks (EStG § 3 is 54,000 characters) by item, so dense search sees all of them
 - VAT for freelancers (UStG § 19, small businesses), and double taxation treaties, which are published outside gesetze-im-internet.de
-- health insurance (SGB V), which foreigners ask about as often as pensions
+- the broadcasting fee (Rundfunkbeitrag): it is a treaty between the federal states, not a federal law, so it is not on gesetze-im-internet.de and would need its own source and parser. It applies per dwelling, regardless of nationality
 
 **Other planned work**
-- index the titles of referenced sections with each chunk, so provisions that only cite "§ 25 Absatz 2" can still be found (see the refugee module findings)
+- have native speakers review the German, Arabic, Syrian and Italian questions of evalset v2 (workbooks ready in [review/](review/))
+- AufenthV's official zip is 19.5 MB because it contains form images; consider keeping only the XML in git
+- index the titles of referenced sections with each chunk, so provisions that only cite "§ 25 Absatz 2" can still be found (see the [v1 findings](#evaluation-set-v1-archived))
 - the EU asylum regulations (2024/1347, 2024/1348, 2024/1351) from EUR-Lex, which needs its own parser
 - `rewrite`: search the original question together with the rewritten queries (see the answer evaluation findings)
 - a format fix for small models that copy the status template, if gpt-5.4-nano is used to save cost
-- a full answer evaluation over all 372 questions (core, refugee and tax modules, six sets each) with the chosen model and prompt version (about $8 with the default gpt-5.4-mini; $2 with nano, $28 with gpt-5.4; extrapolated from the validation runs)
-- a deterministic scope check for EU citizens, so § 1 Abs. 2 is always retrieved rather than left to the LLM's queries
-- a setting to switch the app's main UI language (e.g. Turkish, Arabic, Italian, Korean); the German gloss stays on by default
-- verify the gold sections in the evaluation set (some are too narrow, see the answer evaluation findings), and have native speakers review the Turkish, Arabic and Italian translations
-- add the Residence Ordinance (AufenthV); the parser already knows it
+- a full answer evaluation over all 360 v2 questions (60 × six sets) with the chosen model and prompt version (about $8 with the default gpt-5.4-mini; $2 with nano, $28 with gpt-5.4; extrapolated from the v1 validation runs)
+- run `rewrite` and `agent` on the Arabic dialect sets and compare with the NLLB translation [experiment](#experiment-translating-the-question-before-retrieval)
+- a commercially usable translation model, if translating before retrieval goes into the app
+- a deterministic scope check for EU citizens, so AufenthG § 1 Abs. 2 and FreizügG/EU § 2 are always retrieved rather than left to the LLM's queries (EU askers score 0.198 recall in v2)
+- a setting to switch the app's main UI language (e.g. Korean, Arabic, Italian); the German gloss stays on by default
+- verify the gold sections in the evaluation set (some are too narrow, see the answer evaluation findings)
 
 ## Tests
 
@@ -365,7 +418,7 @@ AsylG was the first law added this way; EStG, AO, SGB IV and SGB VI followed. Th
 python -m pytest -q
 ```
 
-Tests use a fake embedder, so they run without the bge-m3 model or an API key.
+Tests use a fake embedder, so they run without the bge-m3 model or an API key. `test_evalset.py` checks that the six evalset files hold the same questions (ids, gold sections, expected behavior, persona).
 
 ## Not in git
 

@@ -11,12 +11,17 @@ Conditions (plan section 5):
     agent    4. LangGraph agent: plan sub-questions, retrieve, follow cross_refs,
                 check sufficiency, retry up to 2x (see agent.py)
 
-LLM is configured by environment variables or a .env file next to this script:
-    OPENAI_API_KEY
-    LLM_PROVIDER         = openai (default) | anthropic
+    python rag.py "유학생도 일할 수 있나요?" --provider ollama           # local model via Ollama
+
+LLM is configured by --provider / --model (see llm_cli.py), environment variables or a .env file:
+    LLM_PROVIDER         = openai (default) | anthropic | ollama
+    OPENAI_API_KEY       = for openai
     LLM_MODEL            = default gpt-5.4-mini (openai) / claude-sonnet-5-5 (anthropic)
-    LLM_REASONING_EFFORT = low (default) | none | medium | high ; empty = do not send
-    OPENAI_BASE_URL      = only for compatible servers, e.g. http://localhost:11434/v1 (Ollama)
+    LLM_REASONING_EFFORT = low (default) | none | medium | high ; empty = do not send (openai)
+    OPENAI_BASE_URL      = only for other OpenAI-compatible servers
+    OLLAMA_MODEL         = default qwen3:8b (ollama)
+    OLLAMA_URL           = default http://localhost:11434
+    OLLAMA_NUM_CTX       = context window in tokens, default 16384 (Ollama's own default is too small)
 """
 from __future__ import annotations
 
@@ -29,12 +34,16 @@ from pathlib import Path
 from typing import Protocol
 
 from laws import CORPUS, LAWS, OUT_OF_SCOPE, TOPIC, corpus_names
+from llm_cli import add_llm_args, apply_llm_args, load_dotenv, model_for
 from retrieval import RRF_K, LawIndex, cite
 
-# Prompt versions: v2 is the default; v1 is kept so experiments can be re-run and compared.
+# Prompt versions: v3 is the default; v1 and v2 are kept so experiments can be re-run and compared.
 # Choose with the environment variable PROMPT_VERSION. Add a version instead of editing one in place.
-PROMPT_VERSIONS = ("v1", "v2")
-PROMPT_VERSION = os.environ.get("PROMPT_VERSION", "v2")
+#   v2  scope check, status rules (written on the dev split, checked on validation)
+#   v3  = v2, but EU citizens are answered from FreizügG/EU, which is now in the corpus, and any EU law
+#        outside the corpus (visa list, Schengen short stays) is named with advice to consult it
+PROMPT_VERSIONS = ("v1", "v2", "v3")
+PROMPT_VERSION = os.environ.get("PROMPT_VERSION", "v3")
 if PROMPT_VERSION not in PROMPT_VERSIONS:
     raise SystemExit(f"PROMPT_VERSION must be one of {PROMPT_VERSIONS}, not {PROMPT_VERSION!r}")
 
@@ -113,23 +122,64 @@ class OpenAICompatLLM:
         raise RuntimeError("OpenAI request kept failing after parameter fallbacks")
 
 
-def load_dotenv(path: Path | None = None) -> None:
-    """Read KEY=VALUE lines from .env (next to this file) into os.environ.
-    Variables already set in the shell win. No extra dependency needed."""
-    path = path or Path(__file__).resolve().parent / ".env"
-    if not path.exists():
-        return
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, val = line.removeprefix("export ").split("=", 1)
-        val = val.strip()
-        if len(val) >= 2 and val[0] == val[-1] and val[0] in "'\"":
-            val = val[1:-1]
-        elif " #" in val:
-            val = val.split(" #", 1)[0].rstrip()
-        os.environ.setdefault(key.strip(), val)
+class OllamaLLM:
+    """A local model served by Ollama, through its native /api/chat endpoint.
+
+    The native API (unlike Ollama's OpenAI-compatible one) lets us set the context window:
+    Ollama's default is a few thousand tokens and silently cuts the start of longer prompts,
+    which here would be the answer rules. Thinking ("reasoning") models such as qwen3 are asked
+    not to think: it is slow and would push the STATUS line out of first position.
+    """
+
+    def __init__(self, model: str, url: str = "http://localhost:11434", num_ctx: int = 16384):
+        self.name, self.url, self.num_ctx = model, url.rstrip("/"), num_ctx
+        self.usage = {"input_tokens": 0, "output_tokens": 0}
+
+    def _post(self, payload: dict) -> dict:
+        import urllib.error
+        import urllib.request
+        req = urllib.request.Request(f"{self.url}/api/chat", data=json.dumps(payload).encode(),
+                                     headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=900) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            msg = e.read().decode(errors="replace")[:300]
+            if e.code == 404 and "not found" in msg:
+                raise SystemExit(f"model '{self.name}' is not in Ollama. Pull it with `ollama pull {self.name}`, "
+                                 f"or pick an installed one with --model: {', '.join(self.installed()) or 'none'}") from e
+            raise RuntimeError(f"Ollama error {e.code}: {msg}") from e
+        except urllib.error.URLError as e:
+            raise SystemExit(f"cannot reach Ollama at {self.url} ({e.reason}): is it running? "
+                             f"Start it with `ollama serve` or the Ollama app.") from e
+
+    def installed(self) -> list[str]:
+        import urllib.request
+        try:
+            with urllib.request.urlopen(f"{self.url}/api/tags", timeout=10) as r:
+                return [m["name"] for m in json.loads(r.read()).get("models", [])]
+        except Exception:
+            return []
+
+    def complete(self, system: str, user: str, max_tokens: int = 1200) -> str:
+        payload = {"model": self.name, "stream": False, "think": False,
+                   "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+                   "options": {"temperature": 0, "num_ctx": self.num_ctx, "num_predict": max_tokens}}
+        try:
+            out = self._post(payload)
+        except RuntimeError as e:
+            if "think" not in str(e):
+                raise
+            payload.pop("think")  # models without thinking support reject the flag
+            out = self._post(payload)
+        self.usage["input_tokens"] += out.get("prompt_eval_count", 0)
+        self.usage["output_tokens"] += out.get("eval_count", 0)
+        if out.get("prompt_eval_count", 0) >= self.num_ctx - 8:
+            import sys
+            print(f"warning: prompt filled the whole context ({self.num_ctx} tokens) and was cut; "
+                  f"raise OLLAMA_NUM_CTX", file=sys.stderr)
+        text = out.get("message", {}).get("content", "")
+        return re.sub(r"<think>.*?</think>\s*", "", text, flags=re.S)  # in case a model thinks anyway
 
 
 def llm_from_env() -> LLM:
@@ -137,13 +187,16 @@ def llm_from_env() -> LLM:
     provider = os.environ.get("LLM_PROVIDER", "openai").lower()
     if provider == "openai":
         if not os.environ.get("OPENAI_API_KEY") and not os.environ.get("OPENAI_BASE_URL"):
-            raise SystemExit("OPENAI_API_KEY is not set: put it in the .env file (see .env.example)")
-        return OpenAICompatLLM(os.environ.get("LLM_MODEL", "gpt-5.4-mini"),
-                               os.environ.get("OPENAI_BASE_URL"),
+            raise SystemExit("OPENAI_API_KEY is not set: put it in the .env file (see .env.example), "
+                             "or run a local model with --provider ollama")
+        return OpenAICompatLLM(model_for("openai"), os.environ.get("OPENAI_BASE_URL"),
                                os.environ.get("LLM_REASONING_EFFORT", "low") or None)
     if provider == "anthropic":
-        return AnthropicLLM(os.environ.get("LLM_MODEL", "claude-sonnet-5-5"))
-    raise SystemExit(f"unknown LLM_PROVIDER: {provider}")
+        return AnthropicLLM(model_for("anthropic"))
+    if provider == "ollama":
+        return OllamaLLM(model_for("ollama"), os.environ.get("OLLAMA_URL", "http://localhost:11434"),
+                         int(os.environ.get("OLLAMA_NUM_CTX", "16384")))
+    raise SystemExit(f"unknown LLM_PROVIDER: {provider} (openai, anthropic or ollama)")
 
 
 class CountingLLM:
@@ -269,8 +322,33 @@ from general knowledge.
 Start your reply with exactly one status line, then a blank line, then the answer:
 STATUS: answer | refuse_out_of_scope | explain_without_judgment"""
 
+# v3 changes only rule 3: the Freedom of Movement Act is no longer outside the excerpts
+_RULE3_V2 = """3. Check scope first. If the user is a citizen of an EU/EEA country or Switzerland, the Residence \
+Act largely does not apply to them (AufenthG § 1 Abs. 2 Nr. 1, if in the excerpts): say so, say \
+that the Freedom of Movement Act governs their case and is not in the excerpts, use \
+refuse_out_of_scope, and do not explain residence permits as if they needed one."""
+_RULE3_V3 = """3. Check scope first. If the user is a citizen of an EU/EEA country or Switzerland, the Residence \
+Act largely does not apply to them (AufenthG § 1 Abs. 2 Nr. 1); their right to live and work in \
+Germany comes from the Freedom of Movement Act (FreizügG/EU). Answer from the FreizügG/EU excerpts; \
+if none were retrieved, say that the answer is in that Act and use refuse_out_of_scope. Never explain \
+residence permits as if they needed one."""
+# ... and rule 9: any EU law the German excerpts point to (visa list, Schengen short stays, asylum), not only asylum
+_RULE9_V2 = """9. Many AsylG provisions refer to EU Regulations (EU) 2024/1347, 2024/1348 or 2024/1351. Their text \
+is not in the excerpts: say that the details are in the EU regulation instead of filling them in \
+from general knowledge."""
+_RULE9_V3 = """9. Many provisions point to EU law that is not in the excerpts, e.g. Regulation (EU) 2018/1806 (which \
+nationalities need a visa), the Schengen rules on short stays (90 days in any 180), or the asylum Regulations \
+(EU) 2024/1347, 2024/1348 and 2024/1351. Answer what the German excerpts say, name the EU regulation that \
+governs the rest, and advise the user to consult it or the competent authority. Do not fill in its content \
+from general knowledge."""
+ANSWER_SYSTEM_V2 = ANSWER_SYSTEM
+ANSWER_SYSTEM_V3 = ANSWER_SYSTEM.replace(_RULE3_V2, _RULE3_V3).replace(_RULE9_V2, _RULE9_V3)
+assert _RULE3_V3 in ANSWER_SYSTEM_V3 and _RULE9_V3 in ANSWER_SYSTEM_V3, "v2 rules 3/9 not found"
+
 if PROMPT_VERSION == "v1":
     REWRITE_SYSTEM, ANSWER_SYSTEM = REWRITE_SYSTEM_V1, ANSWER_SYSTEM_V1
+elif PROMPT_VERSION == "v3":
+    ANSWER_SYSTEM = ANSWER_SYSTEM_V3
 
 LANG_NAMES = {"ko": "Korean", "en": "English", "de": "German", "tr": "Turkish", "ar": "Arabic", "it": "Italian"}
 
@@ -423,7 +501,9 @@ def main() -> None:
     ap.add_argument("--condition", default="rewrite", choices=CONDITIONS + ("agent",))
     ap.add_argument("--index", default="data/index")
     ap.add_argument("--json", action="store_true", help="print the full result dict")
+    add_llm_args(ap)
     args = ap.parse_args()
+    apply_llm_args(args)
     r = answer(args.question, args.condition, args.index)
     if args.json:
         print(json.dumps(r, ensure_ascii=False, indent=2))
