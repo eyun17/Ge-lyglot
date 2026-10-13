@@ -2,7 +2,7 @@
 Ask about German law in your own language, get answers grounded in the original German statute text.
 
 Ge-lyglot, which is a short name of Gesetz-Polyglot, is a retrieval-augmented QA system for the German laws that matter most to foreigners living in Germany.
-Users ask in their own language; the system retrieves the German statute text, answers in the language of the question with citations, and checks that every citation points to a passage it actually retrieved.
+Users ask in Korean, English, German, Italian or Arabic (Modern Standard or Syrian dialect); questions in other languages get a short note asking them to rephrase, without an LLM call. The system retrieves the German statute text, answers in the language of the question with citations, and checks that every citation points to a passage it actually retrieved.
 The project compares four retrieval conditions, several LLMs and three prompt versions on the same questions, to see which setup finds the legal basis for an answer most reliably and answers correctly. It is evaluated in Korean, English, German, Arabic (Modern Standard Arabic and Syrian dialect) and Italian.
 
 The corpus has fourteen federal laws (10,029 Absatz-level chunks):
@@ -124,7 +124,13 @@ pip install -r requirements.txt
 pip install torch --index-url https://download.pytorch.org/whl/cpu
 ```
 
-Known-good versions are pinned in [requirements.lock](requirements.lock).
+`requirements.txt` lists only the packages the code uses directly, without exact versions, so a fresh install gets current releases. [requirements.lock](requirements.lock) pins every package, dependencies included, to the versions this project was last tested with (Python 3.11, macOS, updated 2026-10-13). If a newer release breaks something, install those instead:
+
+```bash
+pip install -r requirements.lock
+```
+
+Run the scripts with the virtual environment's Python. If another environment is active (for example conda's `(base)`), `python` may point elsewhere and fail with `No module named 'gradio'`; `.venv/bin/python app.py` always uses the right one.
 
 LLM settings live in `.env`, which is git-ignored:
 

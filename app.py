@@ -50,6 +50,7 @@ STATUS_LABELS = {
     "refuse_out_of_scope": ("⛔ Out of scope", "Außerhalb des Anwendungsbereichs"),
     "explain_without_judgment": ("⚖️ Requirements only, no individual judgment", "Nur Voraussetzungen, keine Einzelfallbeurteilung"),
     "unclear": ("❔ Answer type unclear, read with care", "Antworttyp unklar, bitte genau prüfen"),
+    "unsupported_language": ("🌐 Language not supported yet", "Sprache noch nicht unterstützt"),
 }
 
 
@@ -75,6 +76,9 @@ DISCLAIMER_DE = (
     "Grundlage dieser Antworten, für übermäßiges Vertrauen in sie oder für eine missbräuchliche Verwendung "
     "dieses Werkzeugs.")
 
+
+CONTACT_EMAIL = "eyun@uni-osnabrueck.de"
+CONTACT_MAILTO = f"mailto:{CONTACT_EMAIL}?subject=GesetzPolyglot%20translation%20review"
 
 SOURCE_EN = (
     "The statute texts are the consolidated versions published by the German Federal Ministry of Justice "
@@ -215,18 +219,24 @@ def build_ui(answer_fn, examples: list[list[str]], sources_md: str = "") -> gr.B
         except Exception as e:  # show errors in the UI instead of a blank box
             return bi(f"❌ Error: `{type(e).__name__}: {e}`", "Ein Fehler ist aufgetreten."), "", "", {}
 
-    with gr.Blocks(title="🇩🇪Gesetz Polyglot🤖") as demo:
+    with gr.Blocks(title="Gelyglot") as demo:
         gr.Markdown(
-            "## GesetzPolyglot\n"
+            "# Gesetz Polyglot for foreigners in Germany \n"
             + f"Ask about German {TOPIC} in your language."
             + "<br>" + de(f"Fragen zum deutschen {TOPIC_DE} in Ihrer Sprache") + "\n\n"
             + bi(f"Answers are based on the statutory text of {corpus_names()}. "
-                 "Ask in English, German, Korean, Turkish, Arabic or Italian. **This is not legal advice.**",
+                 "Ask in Korean, English, German, Italian or Arabic (Modern Standard or Syrian dialect). "
+                 "**This is not legal advice.**",
                  f"Die Antworten beruhen auf dem Gesetzestext von {corpus_names('und')}. Fragen sind auf "
-                 "Englisch, Deutsch, Koreanisch, Türkisch, Arabisch oder Italienisch möglich. "
-                 "<b>Keine Rechtsberatung.</b>")
+                 "Koreanisch, Englisch, Deutsch, Italienisch oder Arabisch (Hocharabisch oder syrischer Dialekt) "
+                 "möglich. <b>Keine Rechtsberatung.</b>")
             + "<br>" + bi("Source: official consolidated texts from gesetze-im-internet.de (see Sources below).",
-                          "Quelle: konsolidierte Texte von gesetze-im-internet.de (siehe Quellen unten)."))
+                          "Quelle: konsolidierte Texte von gesetze-im-internet.de (siehe Quellen unten).")
+            + "\n\n" + bi(f"🌍 Want to contribute in your language? [Send us an email]({CONTACT_MAILTO}) and we will "
+                          "send you the test questions, so you can check the translation into your language.",
+                          f"Möchten Sie in Ihrer Sprache mithelfen? <a href='{CONTACT_MAILTO}'>Schreiben Sie uns eine "
+                          "E-Mail</a>, dann schicken wir Ihnen die Testfragen, damit Sie die Übersetzung in Ihre "
+                          "Sprache prüfen können."))
         with gr.Accordion("⚠️ Disclaimer — please read / Haftungsausschluss — bitte lesen", open=True):
             gr.Markdown(bi(DISCLAIMER_EN, DISCLAIMER_DE))
         with gr.Row():

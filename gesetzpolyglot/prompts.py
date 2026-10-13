@@ -128,13 +128,12 @@ if PROMPT_VERSION == "v1":
 elif PROMPT_VERSION == "v3":
     ANSWER_SYSTEM = ANSWER_SYSTEM_V3
 
-LANG_NAMES = {"ko": "Korean", "en": "English", "de": "German", "tr": "Turkish", "ar": "Arabic", "it": "Italian"}
+LANG_NAMES = {"ko": "Korean", "en": "English", "de": "German", "ar": "Arabic", "it": "Italian"}
 
 FOOTER = {
     "ko": "법령 기준: {stand}\n이 답변은 법률 정보이며 법률 자문이 아닙니다. 개인 사정은 외국인청(Ausländerbehörde)이나 전문가에게 확인하세요.\n참고용으로만 사용하세요. 이 답변을 과신하거나 오용해 생긴 결과에 대해 작성자는 책임지지 않습니다.",
     "en": "Legal basis as of: {stand}\nThis is legal information, not legal advice. For your individual case, ask the Ausländerbehörde or a qualified advisor.\nUse it as an aid only. The author accepts no liability for overreliance on or misuse of this answer.",
     "de": "Rechtsstand: {stand}\nDies ist eine allgemeine Rechtsinformation, keine Rechtsberatung. Für Ihren Einzelfall wenden Sie sich an die Ausländerbehörde oder eine Beratungsstelle.\nNur als Hilfestellung gedacht. Für übermäßiges Vertrauen in diese Antwort oder ihre missbräuchliche Verwendung wird keine Haftung übernommen.",
-    "tr": "Hukuki dayanak tarihi: {stand}\nBu yanıt hukuki bilgi niteliğindedir, hukuki danışmanlık değildir. Kişisel durumunuz için yabancılar dairesine (Ausländerbehörde) veya bir uzmana danışın.\nYalnızca yardımcı bilgi olarak kullanın. Bu yanıta aşırı güvenilmesinden veya kötüye kullanılmasından doğan sonuçlardan geliştirici sorumlu değildir.",
     "it": "Base giuridica aggiornata al: {stand}\nQuesta risposta è un'informazione giuridica, non una consulenza legale. Per il tuo caso specifico rivolgiti all'ufficio stranieri (Ausländerbehörde) o a un consulente qualificato.\nDa usare solo come supporto. L'autore non si assume alcuna responsabilità per un affidamento eccessivo su questa risposta o per un suo uso improprio.",
     "ar": "الأساس القانوني بتاريخ: {stand}\nهذه الإجابة معلومات قانونية وليست استشارة قانونية. للاستفسار عن حالتك الشخصية، راجع دائرة الأجانب (Ausländerbehörde) أو مختصاً مؤهلاً.\nاستخدمها كوسيلة مساعدة فقط. لا يتحمل المطوّر أي مسؤولية عن الاعتماد المفرط على هذه الإجابة أو إساءة استخدامها.",
 }

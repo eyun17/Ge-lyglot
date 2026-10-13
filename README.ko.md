@@ -3,7 +3,7 @@
 독일 법을 내 언어로 묻고, 독일어 원문 조문에 근거한 답을 받습니다.
 
 Ge-lyglot(GesetzPolyglot의 줄임말)은 독일에 사는 외국인에게 중요한 독일 법령을 대상으로 하는 RAG 질의응답 시스템입니다.
-자기 언어로 물으면 독일어 원문 조문을 찾아, 질문한 언어로 인용과 함께 답하고, 인용이 실제로 검색된 조문인지 검증합니다.
+한국어, 영어, 독일어, 이탈리아어, 아랍어(표준어 또는 시리아 방언)로 물을 수 있고, 다른 언어로 물으면 LLM을 부르지 않고 지원 언어로 다시 물어 달라고 안내합니다. 질문하면 독일어 원문 조문을 찾아, 질문한 언어로 인용과 함께 답하고, 인용이 실제로 검색된 조문인지 검증합니다.
 같은 질문을 네 가지 검색 조건, 여러 LLM, 세 가지 프롬프트 버전으로 돌려, 어떤 조합이 답의 근거를 더 잘 찾고 올바르게 답하는지 비교하는 것이 목적입니다. 평가는 한국어, 영어, 독일어, 아랍어(표준어와 시리아 방언), 이탈리아어로 합니다.
 
 코퍼스는 연방법 14개입니다(Absatz 단위 조문 10,029개).
@@ -110,7 +110,13 @@ pip install -r requirements.txt
 pip install torch --index-url https://download.pytorch.org/whl/cpu
 ```
 
-검증된 버전 조합은 [requirements.lock](requirements.lock)에 있습니다.
+`requirements.txt`에는 코드가 직접 쓰는 패키지 이름만 버전 없이 적혀 있어서, 새로 설치하면 그때의 최신 버전이 깔립니다. [requirements.lock](requirements.lock)에는 하위 패키지까지 모든 패키지가 이 프로젝트를 마지막으로 테스트한 버전으로 고정되어 있습니다(Python 3.11, macOS, 2026-10-13 갱신). 새 버전 때문에 무언가 깨지면 이걸로 설치하세요.
+
+```bash
+pip install -r requirements.lock
+```
+
+스크립트는 가상환경의 Python으로 실행하세요. 다른 환경(예: conda의 `(base)`)이 켜져 있으면 `python`이 다른 Python을 가리켜 `No module named 'gradio'` 오류가 날 수 있습니다. `.venv/bin/python app.py`처럼 쓰면 항상 맞는 Python을 씁니다.
 
 LLM 설정은 `.env`에 둡니다. `.env`는 git에 올라가지 않습니다.
 

@@ -20,9 +20,9 @@ MODEL = "facebook/nllb-200-distilled-600M"
 CACHE_DIR = Path(__file__).resolve().parent.parent / "results"
 
 # evalset "set" -> NLLB source language code; the dialects have their own codes in NLLB
-# (tr-TR, it-IT and ar-EG are sets of the archived v1 evalset)
+# (it-IT and ar-EG are sets of the archived v1 evalset)
 SRC = {
-    "ko": "kor_Hang", "en": "eng_Latn", "de": "deu_Latn", "it": "ita_Latn", "tr-TR": "tur_Latn", "it-IT": "ita_Latn",
+    "ko": "kor_Hang", "en": "eng_Latn", "de": "deu_Latn", "it": "ita_Latn", "it-IT": "ita_Latn",
     "ar": "arb_Arab",      # Modern Standard Arabic
     "ar-SY": "apc_Arab",   # North Levantine Arabic
     "ar-EG": "arz_Arab",   # Egyptian Arabic

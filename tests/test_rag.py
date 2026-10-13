@@ -24,11 +24,28 @@ def test_detect_lang():
     assert detect_lang("Kann ich als Student arbeiten?") == "de"
     assert detect_lang("Darf ich während des Studiums jobben") == "de"
     assert detect_lang("Can students work in Germany?") == "en"
-    assert detect_lang("Öğrenciler Almanya'da çalışabilir mi?") == "tr"
-    assert detect_lang("Yabancılar dairesine (Ausländerbehörde) bildirmem gerekir mi?") == "tr"
     assert detect_lang("هل يمكن للطلاب العمل في ألمانيا؟") == "ar"
     assert detect_lang("Gli studenti possono lavorare in Germania durante gli studi?") == "it"
     assert detect_lang("Devo comunicarlo all'ufficio stranieri (Ausländerbehörde)?") == "it"
+    assert detect_lang("Blue Card salary?") == "en"                      # keywords only
+    for unsupported in ["Les étudiants peuvent-ils travailler en Allemagne ?",
+                        "¿Pueden los estudiantes trabajar en Alemania?",
+                        "Öğrenciler Almanya'da çalışabilir mi?",                # Turkish ("mi" is also Italian)
+                        "学生はドイツで働けますか？", "Могут ли студенты работать в Германии?",
+                        "آیا دانشجویان می‌توانند در آلمان کار کنند؟",           # Persian: Arabic script, not Arabic
+                        "Mag ik in Duitsland werken als student?"]:
+        assert detect_lang(unsupported) is None, unsupported
+
+
+def test_detect_lang_on_evalset():
+    """Every evaluation question must be detected as its own language, or the answer comes in the wrong one."""
+    import json
+    from evaluation.eval_retrieval import EVALSET_DIR
+    expected = {"ko": "ko", "en": "en", "de": "de", "ar": "ar", "ar_sy": "ar", "it": "it"}
+    for name, lang in expected.items():
+        for line in (EVALSET_DIR / f"{name}.jsonl").open(encoding="utf-8"):
+            q = json.loads(line)["question"]
+            assert detect_lang(q) == lang, (name, q)
 
 
 def test_parse_status_and_queries():
@@ -67,6 +84,17 @@ def test_answer_end_to_end():
     assert r["footer"].startswith("법령 기준: AufenthG 2026-10-05")
     assert "Korean" in llm.prompts[1][0] and "[AufenthG § 16b Abs. 3]" in llm.prompts[1][1]
     assert r_h["llm_calls"] == 1 and r_h["lang"] == "de" and "German" in llm.prompts[2][0]
+
+
+def test_unsupported_language_is_not_answered():
+    llm = FakeLLM("STATUS: answer\n\nshould not be called")
+    with tempfile.TemporaryDirectory() as d:
+        rag = RAG(_index(d), llm, k=3)
+        for cond in ("hybrid", "rewrite", "agent"):
+            r = rag.answer("Les étudiants peuvent-ils travailler en Allemagne ?", cond)
+            assert r["status"] == "unsupported_language" and r["llm_calls"] == 0 and r["retrieved"] == []
+            assert "Korean, English, German, Italian or Arabic" in r["answer"]
+    assert llm.prompts == []
 
 
 def test_openai_param_fallback():

@@ -35,32 +35,58 @@ STATUSES = ("answer", "refuse_out_of_scope", "explain_without_judgment")
 # --------------------------------------------------------------------------
 # Language detection (rule-based: deterministic and free)
 # --------------------------------------------------------------------------
-_DE_WORDS = re.compile(r"\b(ich|und|nicht|kann|darf|muss|eine?n?|der|die|das|wie|wird|für|nach|"
-                       r"bei|mit|oder|wenn|als|auf|ist|sind|habe|bekomme)\b", re.I)
+SUPPORTED_LANGS = ("ko", "en", "de", "it", "ar")  # the languages the evaluation set covers
+
+# Function words per language. Only en, de and it are supported among Latin-script languages; the
+# others are listed so that a French or Spanish question is recognised as such and not taken for English.
+_WORDS = {
+    "en": "the a an i my me you your is are am was can could do does did have has had to of in on at for and or "
+          "if what how when which who will would should be it this that with from after before while get need "
+          "still also any much many long not there they we our as by than so my",
+    "de": "ich und nicht kann darf muss ein eine einen einem einer der die das den dem des wie wird werden für "
+          "nach bei mit oder wenn als auf ist sind habe hat bekomme mein meine meinen bin noch auch schon was wo "
+          "warum wann welche welcher zu zum zur in im vom von aus über ohne man sich mich mir es",
+    "it": "il lo la i gli le l un una uno di del della dei delle degli dello al alla allo ai alle all dell nell "
+          "dall sull che non per posso puoi può possono devo deve devono sono è ho ha hanno mi ti si ci con come "
+          "quando dopo prima mentre solo anche mio mia miei mie cosa quali quale quanti quanto quante senza e o "
+          "ma se dove perché nel nella negli ancora in possiamo essere vorrei",
+    "fr": "le la les des du de est sont je j peux peut peuvent ils elles et pour avec dans une un que qui pas "
+          "ne mon ma mes au aux ce cette être avoir quand comment pourquoi",
+    "es": "el la los las del de es son puedo puede pueden y para con una un que no mi mis al por cómo cuánto "
+          "qué cuándo estoy tengo hay sin pero",
+    "pt": "o a os as do da dos das é são posso pode podem em e para com uma um que não meu minha no na como "
+          "quando eu tenho sem mas",
+    "nl": "de het een en ik is zijn kan mag moet van voor met niet wat hoe wanneer mijn ook nog in als werken",
+    "pl": "i w z na się nie jest są czy mogą może do jak co dla mój moja jestem mam",
+    "tr": "ve bir için ile ne nasıl var yok değil olarak mi mı mu mü miyim mıyım ben benim",
+}
+_WORDS = {lang: set(ws.split()) for lang, ws in _WORDS.items()}
+_TOKEN_RE = re.compile(r"[^\W\d_]+")
+# letters of scripts we do not support (CJK, kana, Cyrillic, Greek, Hebrew, Devanagari, Thai, ...)
+_OTHER_SCRIPT = re.compile(r"[^\W\d_a-zA-Z\u00C0-\u024F\uAC00-\uD7A3\u1100-\u11FF\u3130-\u318F\u0600-\u06FF\u0750-\u077F]")
+_PERSIAN_URDU = re.compile(r"[پچژگٹڈڑںےکیۀ]")  # Arabic script, but not Arabic
+_TURKISH = re.compile(r"[ğışĞŞİ]")
 
 
-_TR_WORDS = re.compile(r"\b(mi|mı|mu|mü|miyim|mıyım|ve|bir|için|ile|ne|nasıl|var|yok|değil|olarak)\b", re.I)
-
-_IT_WORDS = re.compile(r"\b(il|lo|la|gli|di|del|della|che|non|per|posso|devo|può|sono|un|una|con|come|quando|"
-                       r"dopo|prima|mentre|solo|anche|mio|mia|mi|ho|è|cosa|quali?|quanti?)\b"
-                       r"|\b(?:l|all|dell|nell|dall|un)'", re.I)  # also elided articles: l'ufficio
-
-
-def detect_lang(text: str) -> str:
+def detect_lang(text: str) -> str | None:
+    """One of SUPPORTED_LANGS, or None for a language we do not support (the caller then asks the user
+    to rephrase instead of answering in a guessed language). Rule-based: deterministic and free."""
     if re.search(r"[가-힣]", text):
         return "ko"
     if re.search(r"[\u0600-\u06FF]", text):
-        return "ar"
-    words = max(len(text.split()), 1)
-    # before German: Turkish shares ö/ü, and questions often quote German terms (Ausländerbehörde)
-    if re.search(r"[ğışĞŞİ]", text) or len(_TR_WORDS.findall(text)) / words > 0.15:
-        return "tr"
-    # also before German, for the same reason: quoted German terms carry umlauts
-    if len(_IT_WORDS.findall(text)) / words > 0.15:
-        return "it"
-    if re.search(r"[äöüß]", text, re.I) or len(_DE_WORDS.findall(text)) / words > 0.15:
-        return "de"
-    return "en"
+        return None if _PERSIAN_URDU.search(text) else "ar"
+    if _OTHER_SCRIPT.search(text) or _TURKISH.search(text):
+        return None
+    tokens = _TOKEN_RE.findall(text.lower())
+    if not tokens:
+        return None
+    score = {lang: sum(t in ws for t in tokens) / len(tokens) for lang, ws in _WORDS.items()}
+    # German compounds quoted in other languages (Ausländerbehörde) carry umlauts, so umlauts only add a little
+    score["de"] += 0.5 * sum(any(ch in t for ch in "äöüß") for t in tokens) / len(tokens)
+    best = max(score, key=score.get)
+    if score[best] == 0:  # keywords only ("Blue Card salary"): no sentence to judge, answer in English
+        return "en"
+    return best if best in SUPPORTED_LANGS and score[best] >= 0.15 else None
 
 
 def format_excerpts(chunks: list[dict]) -> str:
@@ -141,14 +167,16 @@ class RAG:
         return [{**by_id[i], "rank": r + 1} for r, i in enumerate(top)]
 
     def answer(self, question: str, condition: str = "rewrite") -> dict:
-        if condition == "agent":
-            from .agent import run_agent  # condition 4 lives in agent.py (LangGraph)
-            return run_agent(self, question)
-        if condition not in CONDITIONS:
+        if condition not in CONDITIONS + ("agent",):
             raise ValueError(f"condition must be one of {CONDITIONS + ('agent',)}")
         t0, llm, trace = time.time(), CountingLLM(self.llm), []
         lang = detect_lang(question)
         trace.append({"step": "detect_lang", "lang": lang})
+        if lang is None:  # unsupported language: ask the user to rephrase, before any LLM call
+            return unsupported_language(question, condition, trace, t0, self.llm.name)
+        if condition == "agent":
+            from .agent import run_agent  # condition 4 lives in agent.py (LangGraph)
+            return run_agent(self, question)
 
         retrieved = self._retrieve(question, condition, llm, trace)
         trace.append({"step": "retrieve", "mode": condition, "hits": [cite(c) for c in retrieved]})
@@ -183,6 +211,20 @@ def finish(question: str, lang: str, retrieved: list[dict], llm: "CountingLLM", 
         "latency_s": round(time.time() - t0, 2),
         "model": model,
     }
+
+
+UNSUPPORTED_MESSAGE = (
+    "Sorry, this language is not supported yet. Please ask in Korean, English, German, Italian or Arabic "
+    "(Modern Standard or Syrian dialect).\n\n"
+    "Diese Sprache wird noch nicht unterstützt. Bitte fragen Sie auf Koreanisch, Englisch, Deutsch, Italienisch "
+    "oder Arabisch (Hocharabisch oder syrischer Dialekt).")
+
+
+def unsupported_language(question: str, condition: str, trace: list, t0: float, model: str) -> dict:
+    """Result for a question in a language we do not support: no retrieval, no LLM call."""
+    return {"answer": UNSUPPORTED_MESSAGE, "footer": "", "status": "unsupported_language", "citations": [],
+            "invalid_citations": [], "retrieved": [], "stand": "", "lang": None, "condition": condition,
+            "trace": trace, "llm_calls": 0, "latency_s": round(time.time() - t0, 2), "model": model}
 
 
 _PIPELINE: RAG | None = None
