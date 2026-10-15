@@ -6,6 +6,8 @@
     python -m evaluation.eval_answers --pick ko:n03 --model gpt-5.4          # overrides LLM_MODEL from .env
     python -m evaluation.eval_answers --split validation --provider ollama   # local model (OLLAMA_MODEL, default qwen3:8b)
     python -m evaluation.eval_answers --split validation --prompts v1        # items from evalset/splits.json
+    python -m evaluation.eval_answers --split validation --kg both          # each answer with and without the concept graph
+    python -m evaluation.eval_answers --items evalset/heldout/ko.jsonl --kg both   # every item of a file
 
 Unlike eval_retrieval.py this calls the LLM (costs money). Per question and condition it records
     recall@8        gold sections in the first 8 chunks handed to the answer step
@@ -13,7 +15,8 @@ Unlike eval_retrieval.py this calls the LLM (costs money). Per question and cond
     status_ok       answer status == expected_behavior
     invalid         citations that are not in the retrieved chunks
     llm_calls, latency_s, tokens
-Writes results/answers_<run>.jsonl and prints a table plus token totals.
+Writes results/answers_<run>.jsonl, results/answers_<run>.manifest.json (what the run depended on, see
+manifest.py) and prints a table plus token totals. Compare runs or the two --kg variants with compare.py.
 """
 from __future__ import annotations
 
@@ -51,11 +54,14 @@ def main() -> None:
     pick = ap.add_mutually_exclusive_group(required=True)
     pick.add_argument("--pick", nargs="+", help="set:id, e.g. ko:n03 ar-SY:n59")
     pick.add_argument("--split", help="a named list of set:id in evalset/splits.json, e.g. validation, smoke")
+    pick.add_argument("--items", type=Path, nargs="+", help="evaluate every item of these files, e.g. evalset/heldout/ko.jsonl")
     ap.add_argument("--conditions", nargs="+", default=CONDITIONS, choices=CONDITIONS)
     ap.add_argument("--index", type=Path, default=Path("data/index"))
     ap.add_argument("--out", type=Path, default=Path("results"))
     ap.add_argument("--run", default=time.strftime("%Y%m%d-%H%M%S"), help="name of the output file")
-    ap.add_argument("--prompts", choices=["v1", "v2", "v3"], help="prompt version, overrides PROMPT_VERSION")
+    ap.add_argument("--prompts", choices=["v1", "v2", "v3", "v4"], help="prompt version, overrides PROMPT_VERSION")
+    ap.add_argument("--kg", choices=["off", "on", "both"], default="off",
+                    help="concept graph in retrieval (gesetzpolyglot/kg.py); both = every item twice, for a paired comparison")
     add_llm_args(ap)
     args = ap.parse_args()
     apply_llm_args(args)
@@ -68,62 +74,74 @@ def main() -> None:
         splits = json.loads((EVALSET_DIR / "splits.json").read_text(encoding="utf-8"))
         args.pick = splits[args.split]["items"]
 
-    files = sorted(EVALSET_DIR.glob("*.jsonl"))
+    files = list(args.items) if args.items else sorted(EVALSET_DIR.glob("*.jsonl"))
     if not files:
         raise SystemExit(f"no evalset files in {EVALSET_DIR}")
     items = load_items(files)
-    picked = []
-    for p in args.pick:
-        set_, qid = p.split(":")
-        if (set_, qid) not in items:
-            raise SystemExit(f"not found: {p}")
-        picked.append(items[(set_, qid)])
+    if args.items:
+        picked = list(items.values())
+    else:
+        picked = []
+        for p in args.pick:
+            set_, qid = p.split(":")
+            if (set_, qid) not in items:
+                raise SystemExit(f"not found: {p}")
+            picked.append(items[(set_, qid)])
 
+    from gesetzpolyglot.kg import ConceptGraph, concepts_version
+    from evaluation.manifest import write_manifest
     llm = llm_from_env()
-    rag = RAG(LawIndex.load(args.index), llm)
+    index = LawIndex.load(args.index)
+    variants = {"off": [False], "on": [True], "both": [False, True]}[args.kg]
+    rags = {kg: RAG(index, llm, graph=ConceptGraph() if kg else None) for kg in variants}
     args.out.mkdir(parents=True, exist_ok=True)
     out_path = args.out / f"answers_{args.run}.jsonl"
+    write_manifest(out_path.with_suffix(".manifest.json"), args=vars(args), evalset_files=files, index_dir=args.index,
+                   extra={"items": len(picked), "llm_name": llm.name})
     rows = []
     with out_path.open("w", encoding="utf-8") as f:
-        for it in picked:
+        for it, cond, kg in ((it, cond, kg) for it in picked for cond in args.conditions for kg in variants):
             golds = [parse_gold(g) for g in it["gold_sections"]]
-            for cond in args.conditions:
-                before = dict(llm.usage)
-                r = rag.answer(it["question"], cond)
-                used = {k: llm.usage[k] - before.get(k, 0) for k in llm.usage}
-                queries = [q for t in r["trace"] for q in t.get("queries", [])]
-                row = {
-                    "set": it.get("set", it["lang"]), "id": it["id"], "module": it.get("module", "all"), "persona_group": it.get("persona_group"),
-                    "type": it["type"], "condition": cond, "question": it["question"],
-                    "expected": it["expected_behavior"], "status": r["status"],
-                    "status_ok": r["status"] == it["expected_behavior"],
-                    "gold": it["gold_sections"],
-                    "recall@8": recall(golds, r["retrieved"][:8]),
-                    "recall_ctx": recall(golds, r["retrieved"]),
-                    "retrieved": [cite(c) for c in r["retrieved"]],
-                    "citations": r["citations"], "invalid": r["invalid_citations"],
-                    "queries": queries, "llm_calls": r["llm_calls"], "latency_s": r["latency_s"],
-                    "tokens": used, "answer": r["answer"], "model": r["model"],
-                    "prompt_version": prompts.PROMPT_VERSION,
-                }
-                rows.append(row)
-                f.write(json.dumps(row, ensure_ascii=False) + "\n")
-                f.flush()
-                rc = "  -  " if row["recall@8"] is None else f"{row['recall@8']:.2f}"
-                print(f"{row['set']:<6} {row['id']:<4} {cond:<8} recall@8={rc} "
-                      f"status={'ok ' if row['status_ok'] else 'NO '}{r['status']:<25} "
-                      f"invalid={len(row['invalid'])} calls={r['llm_calls']} {r['latency_s']}s", flush=True)
+            rag = rags[kg]
+            before = dict(llm.usage)
+            r = rag.answer(it["question"], cond)
+            used = {k: llm.usage[k] - before.get(k, 0) for k in llm.usage}
+            queries = [q for t in r["trace"] for q in t.get("queries", [])]
+            row = {
+                "set": it.get("set", it["lang"]), "id": it["id"], "module": it.get("module", "all"), "persona_group": it.get("persona_group"),
+                "type": it["type"], "condition": cond, "question": it["question"],
+                "expected": it["expected_behavior"], "status": r["status"],
+                "status_ok": r["status"] == it["expected_behavior"],
+                "gold": it["gold_sections"],
+                "recall@8": recall(golds, r["retrieved"][:8]),
+                "recall_ctx": recall(golds, r["retrieved"]),
+                "retrieved": [cite(c) for c in r["retrieved"]],
+                "citations": r["citations"], "invalid": r["invalid_citations"],
+                "queries": queries, "llm_calls": r["llm_calls"], "latency_s": r["latency_s"],
+                "tokens": used, "answer": r["answer"], "model": r["model"],
+                "prompt_version": prompts.PROMPT_VERSION,
+                "kg": kg, "kg_version": concepts_version() if kg else None,
+                "kg_match": next(({"concepts": t["concepts"], "groups": t["groups"], "added": t["added"]}
+                                  for t in r["trace"] if t["step"] == "concept_graph"), None),
+            }
+            rows.append(row)
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+            f.flush()
+            rc = "  -  " if row["recall@8"] is None else f"{row['recall@8']:.2f}"
+            print(f"{row['set']:<6} {row['id']:<4} {cond + ('+kg' if kg else ''):<11} recall@8={rc} "
+                  f"status={'ok ' if row['status_ok'] else 'NO '}{r['status']:<25} "
+                  f"invalid={len(row['invalid'])} calls={r['llm_calls']} {r['latency_s']}s", flush=True)
 
     print(f"\nwritten: {out_path}")
-    print(f"{'condition':<9} {'recall@8':>8} {'recall_ctx':>10} {'status_ok':>9} {'invalid':>7} {'calls':>5} "
+    print(f"{'condition':<12} {'recall@8':>8} {'recall_ctx':>10} {'status_ok':>9} {'invalid':>7} {'calls':>5} "
           f"{'s/q':>5}  tokens in/out")
-    for cond in args.conditions:
-        rs = [r for r in rows if r["condition"] == cond]
+    for cond, kg in ((c, kg) for c in args.conditions for kg in variants):
+        rs = [r for r in rows if r["condition"] == cond and r["kg"] == kg]
         rec = [r["recall@8"] for r in rs if r["recall@8"] is not None]
         ctx = [r["recall_ctx"] for r in rs if r["recall_ctx"] is not None]
         tin = sum(r["tokens"].get("input_tokens", 0) for r in rs)
         tout = sum(r["tokens"].get("output_tokens", 0) for r in rs)
-        print(f"{cond:<9} {sum(rec) / max(len(rec), 1):>8.3f} {sum(ctx) / max(len(ctx), 1):>10.3f} "
+        print(f"{cond + ('+kg' if kg else ''):<12} {sum(rec) / max(len(rec), 1):>8.3f} {sum(ctx) / max(len(ctx), 1):>10.3f} "
               f"{sum(r['status_ok'] for r in rs):>6}/{len(rs):<2} {sum(len(r['invalid']) for r in rs):>7} "
               f"{sum(r['llm_calls'] for r in rs):>5} {sum(r['latency_s'] for r in rs) / len(rs):>5.1f}  "
               f"{tin:,}/{tout:,}")

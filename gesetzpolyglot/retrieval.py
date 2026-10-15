@@ -47,8 +47,30 @@ def index_text(c: dict) -> str:
     heading of the outline instead, e.g. "Selbständige Arbeit" for EStG § 18.
     """
     head = f"{c['law']} § {c['section']}" + (f" Abs. {c['absatz']}" if c.get("absatz") else "")
-    title = c.get("title") or (_GL_REF.sub("", c["gliederung"][-1]) if c.get("gliederung") else "")
-    return f"{head} {title}\n{c['text']}"
+    title = section_title(c)
+    refs = f"(→ {'; '.join(c['ref_titles'])})\n" if c.get("ref_titles") else ""
+    return f"{head} {title}\n{refs}{c['text']}"
+
+
+def section_title(c: dict) -> str:
+    return c.get("title") or (_GL_REF.sub("", c["gliederung"][-1]) if c.get("gliederung") else "")
+
+
+def add_ref_titles(chunks: list[dict], max_titles: int = 3) -> None:
+    """Store the titles of the sections a chunk refers to in c["ref_titles"], so index_text() can show them.
+    "eine Aufenthaltserlaubnis nach § 25 Absatz 2" then also carries "Aufenthalt aus humanitären Gründen"."""
+    titles: dict[tuple[str, str], str] = {}
+    for c in chunks:
+        titles.setdefault((c["law"], c["section"]), section_title(c))
+    for c in chunks:
+        own = section_title(c)
+        out = []
+        for r in c.get("cross_refs", []):
+            t = titles.get((r["law"], r["section"])) if r.get("status") == "ok" else None
+            if t and t != own and t not in out and (r["law"], r["section"]) != (c["law"], c["section"]):
+                out.append(t)
+        if out:
+            c["ref_titles"] = out[:max_titles]
 
 
 class STEmbedder:
@@ -138,11 +160,15 @@ class LawIndex:
 
     # ---- persistence -----------------------------------------------------
     @classmethod
-    def build(cls, chunks_path: Path, out: Path, embedder=None, store: str = "numpy") -> "LawIndex":
+    def build(cls, chunks_path: Path, out: Path, embedder=None, store: str = "numpy",
+              ref_titles: bool = False) -> "LawIndex":
         """
         Build an index from a chunks.jsonl file, embedding the text and writing emb.npy + chunks.jsonl.
+        ref_titles: also index the titles of the sections each chunk refers to (see add_ref_titles).
         """
         chunks = [json.loads(l) for l in chunks_path.open(encoding="utf-8") if l.strip()]
+        if ref_titles:
+            add_ref_titles(chunks)
         embedder = embedder or STEmbedder()
         emb = embedder.encode([index_text(c) for c in chunks])
         out.mkdir(parents=True, exist_ok=True)
@@ -153,6 +179,7 @@ class LawIndex:
         if store == "chroma":
             ChromaStore.write(out / "chroma", chunks, emb)
         meta = {"model": getattr(embedder, "name", "custom"), "chunks": len(chunks), "store": store,
+                "ref_titles": ref_titles,
                 "snapshots": sorted({f"{c['law']}:{c.get('snapshot')}" for c in chunks})}
         (out / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
         return cls.load(out, embedder)
@@ -244,9 +271,10 @@ def main() -> None:
     ap.add_argument("--mode", default="hybrid", choices=["dense", "bm25", "hybrid"])
     ap.add_argument("--law", choices=CORPUS, help="metadata filter")
     ap.add_argument("--k", type=int, default=8)
+    ap.add_argument("--ref-titles", action="store_true", help="build: also index the titles of referenced sections")
     args = ap.parse_args()
     if args.cmd == "build":
-        idx = LawIndex.build(args.chunks, args.index, store=args.store or "numpy")
+        idx = LawIndex.build(args.chunks, args.index, store=args.store or "numpy", ref_titles=args.ref_titles)
         print(f"indexed {len(idx.chunks)} chunks -> {args.index} (vector store: {idx.store.name})")
     elif args.cmd == "to-chroma":
         LawIndex.to_chroma(args.index)

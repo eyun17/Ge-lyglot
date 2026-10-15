@@ -271,6 +271,7 @@ def main() -> None:
                     help="file for example questions")
     ap.add_argument("--share", action="store_true")
     ap.add_argument("--port", type=int, default=7860)
+    ap.add_argument("--kg", action="store_true", help="add the concept graph to retrieval (experimental)")
     add_llm_args(ap)
     args = ap.parse_args()
     apply_llm_args(args)
@@ -282,7 +283,8 @@ def main() -> None:
     print("loading index and embedding model ...")
     idx = LawIndex.load(Path(args.index))
     idx.embedder  # load bge-m3 now, not on the first question
-    rag._PIPELINE = rag.RAG(idx, rag.llm_from_env())
+    from gesetzpolyglot.kg import ConceptGraph
+    rag._PIPELINE = rag.RAG(idx, rag.llm_from_env(), graph=ConceptGraph() if args.kg else None)
     print(f"ready: {len(idx.chunks)} chunks, vector store {idx.store.name}, model {rag._PIPELINE.llm.name}")
 
     demo = build_ui(lambda qq, c: rag.answer(qq, c, args.index), load_examples(Path(args.evalset)),

@@ -8,13 +8,17 @@ import os
 
 from .laws import CORPUS, OUT_OF_SCOPE, TOPIC, corpus_names
 
-# Prompt versions: v3 is the default; v1 and v2 are kept so experiments can be re-run and compared.
+# Prompt versions: v4 is the default; v1–v3 are kept so experiments can be re-run and compared.
 # Choose with the environment variable PROMPT_VERSION. Add a version instead of editing one in place.
 #   v2  scope check, status rules (written on the dev split, checked on validation)
-#   v3  = v2, but EU citizens are answered from FreizügG/EU, which is now in the corpus, and any EU law
-#        outside the corpus (visa list, Schengen short stays) is named with advice to consult it
-PROMPT_VERSIONS = ("v1", "v2", "v3")
-PROMPT_VERSION = os.environ.get("PROMPT_VERSION", "v3")
+#   v3  = v2, but EU citizens are answered from FreizügG/EU, which is now in the corpus, any EU law
+#        outside the corpus (visa list, Schengen short stays) is named with advice to consult it, and a
+#        user who does not state a nationality gets both cases (EU / non-EU) instead of a guess
+#   v4  = v3, but the model knows the excerpts come from the system's own search (it asked users to
+#        "send the excerpts" and ended 52 of 120 answers with offers in the v2 validation run), and
+#        AufenthG § 1 Abs. 2 is no longer written in citation form inside the rules (it leaked into answers)
+PROMPT_VERSIONS = ("v1", "v2", "v3", "v4")
+PROMPT_VERSION = os.environ.get("PROMPT_VERSION", "v4")
 if PROMPT_VERSION not in PROMPT_VERSIONS:
     raise SystemExit(f"PROMPT_VERSION must be one of {PROMPT_VERSIONS}, not {PROMPT_VERSION!r}")
 
@@ -109,7 +113,11 @@ _RULE3_V3 = """3. Check scope first. If the user is a citizen of an EU/EEA count
 Act largely does not apply to them (AufenthG § 1 Abs. 2 Nr. 1); their right to live and work in \
 Germany comes from the Freedom of Movement Act (FreizügG/EU). Answer from the FreizügG/EU excerpts; \
 if none were retrieved, say that the answer is in that Act and use refuse_out_of_scope. Never explain \
-residence permits as if they needed one."""
+residence permits as if they needed one.
+If the user does not say their nationality and the answer depends on whether they are an EU/EEA or Swiss \
+citizen, do not guess it from the language of the question: answer both cases briefly (EU/EEA/Swiss citizens: \
+Freedom of Movement Act; everyone else: the Residence Act rules) and invite them to state their nationality \
+for a more precise answer. If the answer is the same for everyone (e.g. tax deadlines), do not split it."""
 # ... and rule 9: any EU law the German excerpts point to (visa list, Schengen short stays, asylum), not only asylum
 _RULE9_V2 = """9. Many AsylG provisions refer to EU Regulations (EU) 2024/1347, 2024/1348 or 2024/1351. Their text \
 is not in the excerpts: say that the details are in the EU regulation instead of filling them in \
@@ -123,10 +131,41 @@ ANSWER_SYSTEM_V2 = ANSWER_SYSTEM
 ANSWER_SYSTEM_V3 = ANSWER_SYSTEM.replace(_RULE3_V2, _RULE3_V3).replace(_RULE9_V2, _RULE9_V3)
 assert _RULE3_V3 in ANSWER_SYSTEM_V3 and _RULE9_V3 in ANSWER_SYSTEM_V3, "v2 rules 3/9 not found"
 
+# v3 also searches for the EU scope when the nationality is not stated (rewrite and agent plan)
+_SCOPE_QUERY_V2 = """If the user says they are a citizen of an EU/EEA country or Switzerland, add one query about \
+whether the Residence Act applies to them"""
+_SCOPE_QUERY_V3 = """If the user says they are a citizen of an EU/EEA country or Switzerland, or does not state a \
+nationality and the answer depends on it (residence, work, entry, family members), add one query about \
+whether the Residence Act applies to them"""
+REWRITE_SYSTEM_V3 = REWRITE_SYSTEM.replace(_SCOPE_QUERY_V2, _SCOPE_QUERY_V3)
+assert REWRITE_SYSTEM_V3 != REWRITE_SYSTEM, "v2 scope query sentence not found"
+
+# v4: same retrieval prompts as v3; the answer prompt changes rules 3 and 10 and adds rule 11
+_RULE3_CITE_V3 = "Act largely does not apply to them (AufenthG § 1 Abs. 2 Nr. 1); their right"
+_RULE3_CITE_V4 = ("Act largely does not apply to them (section 1(2) no. 1 of the Residence Act; cite it only if that "
+                  "excerpt is given); their right")
+_RULE10_V2 = "10. Be concise: 2 to 6 sentences, or a short list of requirements."
+_RULE10_V4 = """10. Be concise: 2 to 6 sentences, or a short list of requirements. End with the answer itself, \
+without offers of further help ("If you want, I can ..."). The only question you may ask the user is their \
+nationality (rule 3).
+11. The excerpts come from this system's own search over the statutes. The user did not provide them and cannot \
+see them, so never call them "your excerpts" and never ask the user to send provisions or excerpts. If something \
+is missing, say that it is not in the statutes that were found (name the law if you know it) and, where useful, \
+point to the competent authority (Ausländerbehörde, Finanzamt, Krankenkasse, Meldebehörde)."""
+ANSWER_SYSTEM_V4 = ANSWER_SYSTEM_V3.replace(_RULE3_CITE_V3, _RULE3_CITE_V4).replace(_RULE10_V2, _RULE10_V4)
+assert _RULE3_CITE_V4 in ANSWER_SYSTEM_V4 and _RULE10_V4 in ANSWER_SYSTEM_V4, "v3 rules 3/10 not found"
+
+# The line before the excerpts in the answer step's user message
+EXCERPTS_HEADER_V1 = "Statute excerpts:"
+EXCERPTS_HEADER_V4 = "Statute excerpts found by the search (the user has not seen them):"
+EXCERPTS_HEADER = EXCERPTS_HEADER_V1
+
 if PROMPT_VERSION == "v1":
     REWRITE_SYSTEM, ANSWER_SYSTEM = REWRITE_SYSTEM_V1, ANSWER_SYSTEM_V1
 elif PROMPT_VERSION == "v3":
-    ANSWER_SYSTEM = ANSWER_SYSTEM_V3
+    REWRITE_SYSTEM, ANSWER_SYSTEM = REWRITE_SYSTEM_V3, ANSWER_SYSTEM_V3
+elif PROMPT_VERSION == "v4":
+    REWRITE_SYSTEM, ANSWER_SYSTEM, EXCERPTS_HEADER = REWRITE_SYSTEM_V3, ANSWER_SYSTEM_V4, EXCERPTS_HEADER_V4
 
 LANG_NAMES = {"ko": "Korean", "en": "English", "de": "German", "ar": "Arabic", "it": "Italian"}
 
@@ -157,8 +196,12 @@ Split the user's question into 1 to 3 legal sub-questions (in English). For each
 German search query using statutory terminology (e.g. "Niederlassungserlaubnis Blaue Karte EU \
 Monate" rather than "permanent residence").
 Return only JSON: {{"sub_questions": ["...", "..."], "queries": ["...", "..."]}}"""
+PLAN_SYSTEM_V3 = PLAN_SYSTEM.replace(_SCOPE_QUERY_V2, _SCOPE_QUERY_V3)
+assert PLAN_SYSTEM_V3 != PLAN_SYSTEM, "v2 scope query sentence not found in the plan prompt"
 if PROMPT_VERSION == "v1":
     PLAN_SYSTEM = PLAN_SYSTEM_V1
+elif PROMPT_VERSION in ("v3", "v4"):
+    PLAN_SYSTEM = PLAN_SYSTEM_V3
 
 CHECK_SYSTEM = f"""You check whether retrieved statute excerpts are enough to answer some sub-questions.
 For each sub-question decide whether the excerpts contain the rule that answers it.

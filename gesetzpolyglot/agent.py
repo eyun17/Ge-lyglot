@@ -180,9 +180,19 @@ def run_agent(rag, question: str) -> dict:
     llm = CountingLLM(rag.llm)
     graph = build_graph(rag, llm, question)
     lang = detect_lang(question)
+    scores, via, trace = {}, {}, [{"step": "detect_lang", "lang": lang}]
+    if rag.graph:  # concept graph: its chunks start in the pool, ranked like one more search
+        from .kg import kg_chunks
+        concepts, groups = rag.graph.match(question)
+        extra = kg_chunks(rag.index, rag.graph, question)
+        for rank, i in enumerate(extra):
+            cid = rag.index.chunks[i]["id"]
+            scores[cid], via[cid] = 1.0 / (RRF_K + rank + 1), "concept graph"
+        trace.append({"step": "concept_graph", "concepts": concepts, "groups": groups,
+                      "added": [cite(rag.index.chunks[i]) for i in extra]})
     final = graph.invoke({
-        "question": question, "lang": lang, "t0": t0, "scores": {}, "via": {}, "pending": [], "queries_done": [],
-        "retries": 0, "sufficient": False, "trace": [{"step": "detect_lang", "lang": lang}],
+        "question": question, "lang": lang, "t0": t0, "scores": scores, "via": via, "pending": [], "queries_done": [],
+        "retries": 0, "sufficient": False, "trace": trace,
     })
     return final["result"]
 

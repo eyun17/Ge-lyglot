@@ -6,6 +6,7 @@
     python -m evaluation.eval_retrieval --evalset evalset/en.jsonl
     python -m evaluation.eval_retrieval --store numpy            # exact baseline
     python -m evaluation.eval_retrieval --store chroma           # same evalset on the Chroma (HNSW) store
+    python -m evaluation.eval_retrieval --modes dense dense+kg   # with the concept graph (gesetzpolyglot/kg.py)
     python -m evaluation.eval_retrieval --translate deu_Latn      # translate each question to German first (NLLB, local)
     python -m evaluation.eval_retrieval --translate deu_Latn --fuse   # search original and translation, fuse with RRF
 
@@ -23,6 +24,7 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
+from gesetzpolyglot.kg import kg_search
 from gesetzpolyglot.retrieval import RRF_K, LawIndex, cite
 
 EVALSET_DIR = Path(__file__).resolve().parent.parent / "evalset"
@@ -57,6 +59,17 @@ def fused_search(index: LawIndex, queries: list[str], k: int, mode: str, pool: i
     return [by_id[i] for i in sorted(score, key=score.get, reverse=True)[:k]]
 
 
+_GRAPH = None
+
+
+def _graph():
+    global _GRAPH
+    if _GRAPH is None:
+        from gesetzpolyglot.kg import ConceptGraph
+        _GRAPH = ConceptGraph()
+    return _GRAPH
+
+
 def evaluate(index: LawIndex, items: list[dict], mode: str, k: int,
              queries: dict[str, str | list[str]] | None = None) -> list[dict]:
     """queries: optional {question: text to search instead}, e.g. a translation of the question;
@@ -67,7 +80,12 @@ def evaluate(index: LawIndex, items: list[dict], mode: str, k: int,
         if not golds:
             continue
         query = (queries or {}).get(it["question"], it["question"])
-        hits = fused_search(index, query, k, mode) if isinstance(query, list) else index.search(query, k=k, mode=mode)
+        if mode.endswith("+kg"):  # dense+kg, hybrid+kg: fused with the concept graph (gesetzpolyglot/kg.py)
+            hits = kg_search(index, _graph(), query, k, mode.removesuffix("+kg"))
+        elif isinstance(query, list):
+            hits = fused_search(index, query, k, mode)
+        else:
+            hits = index.search(query, k=k, mode=mode)
         found = [any(is_hit(g, h) for h in hits) for g in golds]
         missing = [g for g in golds if not index.get_section(*g)]
         rows.append({
@@ -104,7 +122,8 @@ def main() -> None:
                     default=[EVALSET_DIR / f"{l}.jsonl" for l in EVALSET_FILES])
     ap.add_argument("--index", type=Path, default=Path("data/index"))
     ap.add_argument("--out", type=Path, default=Path("results"))
-    ap.add_argument("--modes", nargs="+", default=["dense", "hybrid"])
+    ap.add_argument("--modes", nargs="+", default=["dense", "hybrid"],
+                    help="dense, bm25, hybrid, or dense+kg / hybrid+kg (with the concept graph)")
     ap.add_argument("--k", type=int, default=8)
     ap.add_argument("--store", choices=["numpy", "chroma"], default=None,
                     help="vector store to evaluate (default: the one recorded in meta.json)")
@@ -129,6 +148,9 @@ def main() -> None:
         if args.fuse:
             queries = {q: [q, t] for q, t in queries.items()}
             suffix = f"_fuse-{args.translate}"
+    from evaluation.manifest import write_manifest
+    write_manifest(args.out / f"retrieval_{index.store.name}{suffix}.manifest.json", args=vars(args),
+                   evalset_files=args.evalset, index_dir=args.index)
     bad = set()
     for mode in args.modes:
         rows = evaluate(index, items, mode, args.k, queries)

@@ -25,7 +25,7 @@ from pathlib import Path
 
 from .laws import LAWS
 from .llm import LLM, CountingLLM, add_llm_args, apply_llm_args, llm_from_env
-from .prompts import ANSWER_SYSTEM, FOOTER, LANG_NAMES, REWRITE_SYSTEM
+from .prompts import ANSWER_SYSTEM, EXCERPTS_HEADER, FOOTER, LANG_NAMES, REWRITE_SYSTEM
 from .retrieval import RRF_K, LawIndex, cite
 
 CONDITIONS = ("dense", "hybrid", "rewrite")
@@ -147,24 +147,32 @@ def stand_line(chunks: list[dict]) -> str:
 # Pipeline
 # --------------------------------------------------------------------------
 class RAG:
-    def __init__(self, index: LawIndex, llm: LLM, k: int = 8):
-        self.index, self.llm, self.k = index, llm, k
+    """graph: an optional ConceptGraph (kg.py). With it, every condition adds the sections behind the concepts
+    and nationalities in the question; without it, retrieval is exactly as before. This is the switch for
+    comparing runs with and without the concept graph."""
+
+    def __init__(self, index: LawIndex, llm: LLM, k: int = 8, graph=None, pool: int = 50):
+        self.index, self.llm, self.k, self.graph, self.pool = index, llm, k, graph, pool
 
     def _retrieve(self, question: str, condition: str, llm: LLM, trace: list) -> list[dict]:
-        if condition == "dense":
-            return self.index.search(question, self.k, mode="dense")
-        if condition == "hybrid":
-            return self.index.search(question, self.k, mode="hybrid")
-        # rewrite: search each German query, fuse the rankings with RRF
-        queries = parse_queries(llm.complete(REWRITE_SYSTEM, question, max_tokens=300)) or [question]
-        trace.append({"step": "rewrite", "queries": queries})
-        score, by_id = {}, {}
-        for q in queries:
-            for h in self.index.search(q, self.k, mode="hybrid"):
-                by_id[h["id"]] = h
-                score[h["id"]] = score.get(h["id"], 0.0) + 1.0 / (RRF_K + h["rank"])
-        top = sorted(score, key=score.get, reverse=True)[: self.k]
-        return [{**by_id[i], "rank": r + 1} for r, i in enumerate(top)]
+        n = self.pool if self.graph else self.k  # with the graph, fuse from a longer list
+        if condition in ("dense", "hybrid"):
+            ranked = self.index.search(question, n, mode=condition)
+        else:  # rewrite: search each German query, fuse the rankings with RRF
+            queries = parse_queries(llm.complete(REWRITE_SYSTEM, question, max_tokens=300)) or [question]
+            trace.append({"step": "rewrite", "queries": queries})
+            score, by_id = {}, {}
+            for q in queries:
+                for h in self.index.search(q, self.k, mode="hybrid"):
+                    by_id[h["id"]] = h
+                    score[h["id"]] = score.get(h["id"], 0.0) + 1.0 / (RRF_K + h["rank"])
+            ranked = [{**by_id[i], "rank": r + 1} for r, i in enumerate(sorted(score, key=score.get, reverse=True))]
+        if not self.graph:
+            return ranked[: self.k]
+        from .kg import fuse_kg
+        out, step = fuse_kg(self.index, self.graph, question, ranked, self.k)
+        trace.append(step)
+        return out
 
     def answer(self, question: str, condition: str = "rewrite") -> dict:
         if condition not in CONDITIONS + ("agent",):
@@ -173,14 +181,14 @@ class RAG:
         lang = detect_lang(question)
         trace.append({"step": "detect_lang", "lang": lang})
         if lang is None:  # unsupported language: ask the user to rephrase, before any LLM call
-            return unsupported_language(question, condition, trace, t0, self.llm.name)
+            return {**unsupported_language(question, condition, trace, t0, self.llm.name), "kg": bool(self.graph)}
         if condition == "agent":
             from .agent import run_agent  # condition 4 lives in agent.py (LangGraph)
-            return run_agent(self, question)
+            return {**run_agent(self, question), "kg": bool(self.graph)}
 
         retrieved = self._retrieve(question, condition, llm, trace)
         trace.append({"step": "retrieve", "mode": condition, "hits": [cite(c) for c in retrieved]})
-        return finish(question, lang, retrieved, llm, trace, condition, t0, self.llm.name)
+        return {**finish(question, lang, retrieved, llm, trace, condition, t0, self.llm.name), "kg": bool(self.graph)}
 
 
 def finish(question: str, lang: str, retrieved: list[dict], llm: "CountingLLM", trace: list,
@@ -188,7 +196,7 @@ def finish(question: str, lang: str, retrieved: list[dict], llm: "CountingLLM", 
     """Shared last step for ALL conditions: same answer prompt, same citation check,
     same result dict. Keeping this identical is what makes the comparison fair."""
     system = ANSWER_SYSTEM.replace("{lang_name}", LANG_NAMES[lang])
-    user = f"Statute excerpts:\n\n{format_excerpts(retrieved)}\n\nQuestion: {question}"
+    user = f"{EXCERPTS_HEADER}\n\n{format_excerpts(retrieved)}\n\nQuestion: {question}"
     status, body = parse_status(llm.complete(system, user))
     valid, invalid = validate_citations(body, retrieved)
     trace.append({"step": "validate", "valid": valid, "invalid": invalid})
@@ -230,11 +238,12 @@ def unsupported_language(question: str, condition: str, trace: list, t0: float, 
 _PIPELINE: RAG | None = None
 
 
-def answer(question: str, condition: str = "rewrite", index_dir: str | Path = "data/index") -> dict:
-    """Entry point for eval scripts and the Gradio app. Loads index + model once."""
+def answer(question: str, condition: str = "rewrite", index_dir: str | Path = "data/index", kg: bool = False) -> dict:
+    """Entry point for eval scripts and the Gradio app. Loads index + model (and the concept graph) once."""
     global _PIPELINE
     if _PIPELINE is None:
-        _PIPELINE = RAG(LawIndex.load(Path(index_dir)), llm_from_env())
+        from .kg import ConceptGraph
+        _PIPELINE = RAG(LawIndex.load(Path(index_dir)), llm_from_env(), graph=ConceptGraph() if kg else None)
     return _PIPELINE.answer(question, condition)
 
 
@@ -244,10 +253,11 @@ def main() -> None:
     ap.add_argument("--condition", default="rewrite", choices=CONDITIONS + ("agent",))
     ap.add_argument("--index", default="data/index")
     ap.add_argument("--json", action="store_true", help="print the full result dict")
+    ap.add_argument("--kg", action="store_true", help="add the concept graph to retrieval (gesetzpolyglot/kg.py)")
     add_llm_args(ap)
     args = ap.parse_args()
     apply_llm_args(args)
-    r = answer(args.question, args.condition, args.index)
+    r = answer(args.question, args.condition, args.index, kg=args.kg)
     if args.json:
         print(json.dumps(r, ensure_ascii=False, indent=2))
         return

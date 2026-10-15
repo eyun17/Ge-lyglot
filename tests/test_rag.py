@@ -197,3 +197,14 @@ def test_provider_and_model_from_cli(monkeypatch):
     apply_llm_args(ap.parse_args(["--provider", "openai", "--model", "gpt-5.4"]))
     assert os.environ["LLM_MODEL"] == "gpt-5.4" and os.environ["OLLAMA_MODEL"] == "llama3:8b"
     assert isinstance(llm_from_env(), OpenAICompatLLM)
+
+
+def test_prompt_versions():
+    """v3 adds rules on top of v2; v2 must stay as it was, so old runs can be repeated."""
+    from gesetzpolyglot import prompts as p
+    assert "do not guess it from the language" in p.ANSWER_SYSTEM_V3
+    assert "do not guess it from the language" not in p.ANSWER_SYSTEM_V2
+    assert "does not state a" in p.REWRITE_SYSTEM_V3 and "does not state a" in p.PLAN_SYSTEM_V3
+    assert "Regulation (EU) 2018/1806" in p.ANSWER_SYSTEM_V3 and "2018/1806" not in p.ANSWER_SYSTEM_V2
+    assert "11. The excerpts come" in p.ANSWER_SYSTEM_V4 and "11. The excerpts come" not in p.ANSWER_SYSTEM_V3
+    assert "AufenthG § 1 Abs. 2" not in p.ANSWER_SYSTEM_V4  # was copied into answers as a citation

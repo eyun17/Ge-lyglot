@@ -52,9 +52,13 @@ name a specific nationality, from every continent.
 | `translation_reviewed` | text checked by a native speaker |
 | `verified` | gold sections checked by a lawyer (none yet) |
 
+Questions without a nationality (`persona_group: none`) keep the same gold sections in every language: the
+nationality is never inferred from the language. Where the answer depends on it, the prompt (v3 and later) answers both cases
+(EU/EEA/Swiss and everyone else) and asks the user to state their nationality.
+
 Some questions point to EU law that is not in the corpus: the visa list (Regulation (EU) 2018/1806) and the
 Schengen 90/180-day rule (n06, n08, n12). The expected answer covers the German law and names the EU regulation
-to consult for the rest; prompt v3 asks for exactly that.
+to consult for the rest; the prompt (v3 and later) asks for exactly that.
 
 `python -m pytest tests/test_evalset.py` checks that the six files are parallel (same ids, gold sections, behavior, persona).
 
@@ -81,6 +85,15 @@ python review/apply_review.py review_ar_sy.xlsx
 
 which shows the changes (dry run); add `--write` to update the `.jsonl` file. Corrected questions keep their old
 text in `question_before_review`.
+
+## Held-out questions
+
+[heldout/ko.jsonl](heldout/ko.jsonl) holds 22 Korean questions written by the project owner without seeing the
+concept graph (`gesetzpolyglot/concepts.py`), to measure it honestly: the main set was known while the graph was
+written. h1–h7 are the owner's own topics, h8–h22 are situations suggested by Claude and worded by the owner. The
+gold sections were fixed from the statute text before the graph was run. Keep this set out of graph-building:
+once a question has shaped the graph, it no longer measures it. Same fields as the main set, plus `written_by`
+and `gold_by`.
 
 ## v1 (archived)
 
