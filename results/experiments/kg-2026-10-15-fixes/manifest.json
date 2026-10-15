@@ -1,0 +1,80 @@
+{
+  "created": "2026-10-15T12:37:26+0200",
+  "command": "/Users/eyun/Gelyglot/evaluation/ablation.py --name kg-2026-10-15-fixes",
+  "args": {
+    "name": "kg-2026-10-15-fixes",
+    "sets": [
+      "main",
+      "heldout"
+    ],
+    "modes": [
+      "dense",
+      "hybrid"
+    ],
+    "k": 8,
+    "index": "data/index",
+    "store": null,
+    "answers": [],
+    "conditions": [
+      "dense",
+      "hybrid",
+      "rewrite",
+      "agent"
+    ],
+    "yes": false,
+    "force": false
+  },
+  "git": {
+    "commit": "3f402cae42eb39a6a1734842ebbb8f933e818e80",
+    "dirty": true
+  },
+  "prompt_version": "v4",
+  "llm": {
+    "provider": "openai",
+    "model": null
+  },
+  "concepts_version": "e7939cc78fda",
+  "evalset_files": {
+    "evalset/ko.jsonl": "63ab2561b932",
+    "evalset/en.jsonl": "b76f779fcdc1",
+    "evalset/de.jsonl": "b30de7013b69",
+    "evalset/ar.jsonl": "1ce01de2c94d",
+    "evalset/ar_sy.jsonl": "8bc509e83241",
+    "evalset/it.jsonl": "8160dee49bd1",
+    "evalset/heldout/ko.jsonl": "d5651b60834c"
+  },
+  "python": "3.11.17",
+  "packages": {
+    "sentence-transformers": "6.1.0",
+    "torch": "2.14.1",
+    "chromadb": "1.5.9",
+    "rank-bm25": "0.2.2",
+    "openai": "3.26.1",
+    "langgraph": "1.2.14",
+    "numpy": "2.4.6"
+  },
+  "index": {
+    "model": "BAAI/bge-m3",
+    "chunks": 10029,
+    "store": "chroma",
+    "dir": "data/index",
+    "snapshots": [
+      "AO:2026-10-09",
+      "AsylG:2026-10-09",
+      "AufenthG:2026-10-08",
+      "AufenthV:2026-10-12",
+      "BMG:2026-10-12",
+      "BeschV:2026-10-08",
+      "EStG:2026-10-09",
+      "FreizügG/EU:2026-10-12",
+      "KSVG:2026-10-12",
+      "SGB IV:2026-10-09",
+      "SGB V:2026-10-12",
+      "SGB VI:2026-10-09",
+      "StAG:2026-10-12",
+      "VVG:2026-10-12"
+    ],
+    "snapshots_sha": "e94a52be5122"
+  },
+  "experiment": "kg-2026-10-15-fixes"
+}

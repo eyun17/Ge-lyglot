@@ -31,6 +31,15 @@ def _git() -> dict:
     return {"commit": run("rev-parse", "HEAD"), "dirty": bool(run("status", "--porcelain"))}
 
 
+def _plain(v):
+    """Paths (also inside lists, e.g. --items a.jsonl b.jsonl) as text, so the manifest can be written as JSON."""
+    if isinstance(v, Path):
+        return str(v)
+    if isinstance(v, (list, tuple)):
+        return [_plain(x) for x in v]
+    return v
+
+
 def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()[:12]
 
@@ -51,7 +60,7 @@ def manifest(args: dict | None = None, evalset_files: list[Path] = (), index_dir
     m = {
         "created": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "command": " ".join(sys.argv),
-        "args": {k: (str(v) if isinstance(v, Path) else v) for k, v in (args or {}).items()},
+        "args": {k: _plain(v) for k, v in (args or {}).items()},
         "git": _git(),
         "prompt_version": os.environ.get("PROMPT_VERSION") or _default_prompt_version(),
         "llm": {"provider": os.environ.get("LLM_PROVIDER", "openai"),
@@ -79,5 +88,5 @@ def _default_prompt_version() -> str:
 def write_manifest(path: Path, **kwargs) -> dict:
     m = manifest(**kwargs)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(m, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(m, ensure_ascii=False, indent=2, default=str) + "\n", encoding="utf-8")
     return m

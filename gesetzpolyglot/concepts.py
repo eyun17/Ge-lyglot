@@ -5,7 +5,8 @@ Veranlagung, EStG § 46; "Anmeldung" is BMG § 17). Each CONCEPT lists aliases p
 sections that answer it. COUNTRY_GROUPS map nationalities to the provisions that single them out
 (EU/EEA/Swiss citizens, the states privileged by AufenthV § 41 and BeschV § 26, the Western Balkans).
 A concept may add sections only when a country group is also named ("with_group"), e.g. a spouse of an
-EU citizen falls under FreizügG/EU § 3, not under family reunification in the Residence Act.
+EU citizen falls under FreizügG/EU § 3, and then drop the sections that no longer apply ("instead_of"): family
+reunification in the Residence Act (AufenthG §§ 27–30) is not the EU citizen's case.
 
 How aliases match (kg.py): lowercase; an alias containing Latin letters must start a word ("ital" matches
 "Italian", not "capital"); Korean and Arabic aliases match anywhere, because particles and prefixes attach
@@ -16,7 +17,8 @@ questions; the evaluation set was known while writing it, so improvements on it 
 """
 from __future__ import annotations
 
-# id: {"ko"/"en"/"de"/"ar"/"it": [aliases], "sections": [...], "with_group": {group: [sections]}}
+# id: {"ko"/"en"/"de"/"ar"/"it": [aliases], "sections": [...], "with_group": {group: [sections]},
+#      "instead_of": {group: [sections that do not apply once the group is named; removed from the ranking]}}
 CONCEPTS: dict[str, dict] = {
     # ---- residence titles and work -------------------------------------------------------------
     "blue_card": {
@@ -73,7 +75,8 @@ CONCEPTS: dict[str, dict] = {
         "de": ["entsandt", "entsendung", "zentrale eines"], "ar": ["فرع الشركة", "المقر الرئيسي", "نقلوني", "نُقلت"],
         "it": ["trasferit", "sede centrale", "filiale"],
         "sections": ["AufenthG § 19", "AufenthG § 19a", "AufenthG § 19b"],
-        "with_group": {"eu": ["FreizügG/EU § 2 Abs. 2"]}},
+        "with_group": {"eu": ["FreizügG/EU § 2 Abs. 2"]},
+        "instead_of": {"eu": ["AufenthG § 19", "AufenthG § 19a", "AufenthG § 19b"]}},  # ICT cards are for non-EU staff
     "freelance": {
         "ko": ["프리랜서"], "en": ["freelance"], "de": ["freiberuf", "freelancer"], "ar": ["فريلانسر", "العمل الحر"],
         "it": ["freelance", "libero professionista"],
@@ -127,7 +130,8 @@ CONCEPTS: dict[str, dict] = {
         "ko": ["배우자", "가족"], "en": ["spouse", "family"], "de": ["ehepartner", "familie", "ehegatte"],
         "ar": ["زوجي", "زوجتي", "مرتي", "جوزي", "عائلت"], "it": ["coniuge", "famiglia", "familiar"],
         "sections": ["AufenthG § 27", "AufenthG § 30"],
-        "with_group": {"eu": ["FreizügG/EU § 3 Abs. 1", "FreizügG/EU § 5 Abs. 1"]}},
+        "with_group": {"eu": ["FreizügG/EU § 3 Abs. 1", "FreizügG/EU § 5 Abs. 1"]},
+        "instead_of": {"eu": ["AufenthG § 27", "AufenthG § 28", "AufenthG § 29", "AufenthG § 30"]}},  # not reunification
     "citizenship": {
         "ko": ["독일 국적", "시민권", "귀화"], "en": ["german citizenship", "naturalis", "naturaliz"],
         "de": ["deutsche staatsangehörigkeit", "einbürger", "eingebürgert"], "ar": ["الجنسية الألمانية"],

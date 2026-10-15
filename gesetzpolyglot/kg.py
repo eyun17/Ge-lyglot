@@ -43,6 +43,31 @@ def _is_place(text: str, start: int, end: int) -> bool:
     return bool(re.search(r"[가-힣]", text[start:end]) and _PLACE_AFTER_KO.match(after))
 
 
+# A country right next to a relative describes that person, not the asker: "미국인 배우자", "my American spouse",
+# "mein amerikanischer Ehepartner", "il mio coniuge americano", "جوزي أمريكاني".
+_RELATIVES = ("배우자", "아내", "남편", "부인", "와이프", "부모", "자녀", "아이", "아들", "딸",
+              "spouse", "wife", "husband", "partner", "parent", "child", "son", "daughter",
+              "ehepartner", "ehefrau", "ehemann", "frau", "mann", "kind", "eltern", "sohn", "tochter",
+              "coniuge", "moglie", "marito", "figli", "figlio", "figlia", "genitor",
+              "زوج", "زوجت", "مرت", "جوز", "ابن", "بنت", "أولاد", "أهل")
+
+
+def _is_relative(text: str, start: int, end: int) -> bool:
+    """True if one of the two words before or after the country name is a relative. Korean and Arabic words
+    carry particles and prefixes (배우자도, زوجي), so they match by prefix; Latin-script words must be the
+    relative itself or its plural ("son" must not match "sono")."""
+    before = re.findall(r"\w+", text[max(0, start - 30):start])[-2:]
+    after = re.findall(r"\w+", text[end:end + 30])[:2]
+    for w in before + after:
+        for r in _RELATIVES:
+            if re.match(r"[a-z]", r):
+                if w in (r, r + "s", r + "e", r + "en", r + "n", r + "er") or (len(r) >= 6 and w.startswith(r)):
+                    return True
+            elif w.startswith(r):
+                return True
+    return False
+
+
 def _pattern(alias: str) -> re.Pattern:
     """Latin-script aliases must start a word; Korean and Arabic ones may sit inside a word."""
     a = re.escape(alias.lower())
@@ -63,26 +88,36 @@ class ConceptGraph:
         concepts = [cid for cid, pats in self._concept_pats.items() if any(p.search(t) for p in pats)]
         groups = list(dict.fromkeys(
             g for (g, _), pats in self._country_pats.items()
-            if any(not _is_place(t, m.start(), m.end()) for p in pats for m in p.finditer(t))))
+            if any(not _is_place(t, m.start(), m.end()) and not _is_relative(t, m.start(), m.end())
+                   for p in pats for m in p.finditer(t))))
         return concepts, groups
 
-    def sections(self, text: str) -> list[tuple[str, str, str | None]]:
-        """Sections to add for this question: country groups first (they decide which law applies),
-        then concepts, then sections a concept adds only together with a group or another concept."""
+    def plan(self, text: str) -> tuple[list[tuple[str, str, str | None]], set[tuple[str, str]]]:
+        """Sections to add, best first, and sections to remove from the ranking.
+
+        Order, most specific first: sections a concept adds only together with a nationality group or another
+        concept ("spouse" + EU citizen -> FreizügG/EU § 3), then the concepts' own sections, then the groups'.
+        A concept's "instead_of" names sections that do not apply once that group is named (an EU citizen's spouse
+        is not covered by AufenthG § 30): they are neither added nor kept in the ranking."""
         concepts, groups = self.match(text)
-        out: list[str] = []
-        for g in groups:
-            out += self.groups[g]["sections"]
+        specific, general, removed = [], [], set()
         for cid in concepts:
             c = self.concepts[cid]
-            out += c["sections"]
             for g, secs in c.get("with_group", {}).items():
                 if g in groups:
-                    out += secs
+                    specific += secs
+                    removed |= {parse_section(x)[:2] for x in c.get("instead_of", {}).get(g, [])}
             for other, secs in c.get("with_concept", {}).items():
                 if other in concepts:
-                    out += secs
-        return [parse_section(s) for s in dict.fromkeys(out)]
+                    specific += secs
+            general += c["sections"]
+        for g in groups:
+            general += self.groups[g]["sections"]
+        out = [parse_section(x) for x in dict.fromkeys(specific + general)]
+        return [x for x in out if x[:2] not in removed], removed
+
+    def sections(self, text: str) -> list[tuple[str, str, str | None]]:
+        return self.plan(text)[0]
 
 
 def kg_chunks(index: LawIndex, graph: ConceptGraph, query: str) -> list[int]:
@@ -112,7 +147,10 @@ def fuse_kg(index: LawIndex, graph: ConceptGraph, question: str, ranked: list[di
     graph does not know is treated exactly as without the graph."""
     concepts, groups = graph.match(question)
     extra = kg_chunks(index, graph, question)
-    step = {"step": "concept_graph", "concepts": concepts, "groups": groups, "added": []}
+    removed = graph.plan(question)[1]
+    step = {"step": "concept_graph", "concepts": concepts, "groups": groups, "added": [],
+            "removed": sorted({cite(h) for h in ranked if (h["law"], h["section"]) in removed})}
+    ranked = [h for h in ranked if (h["law"], h["section"]) not in removed]
     if not extra:
         return [{**h, "rank": r + 1} for r, h in enumerate(ranked[:k])], step
     pos = {c["id"]: i for i, c in enumerate(index.chunks)}

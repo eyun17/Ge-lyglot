@@ -208,7 +208,48 @@ def load_examples(path: Path, n: int = 8) -> list[list[str]]:
     return [q for qs in per_type.values() for q in qs[:k]]
 
 
-def build_ui(answer_fn, examples: list[list[str]], sources_md: str = "") -> gr.Blocks:
+def how_built(n_chunks: int, kg_on: bool) -> str:
+    """The "How was this app built?" section: the pipeline in plain words, English with a German gloss."""
+    kg_state = ("**on** in this app (started with `--kg`)", "in dieser App <b>eingeschaltet</b>") if kg_on else \
+               ("**off** in this app; it is still being evaluated", "in dieser App <b>ausgeschaltet</b>, wird noch evaluiert")
+    n_de = f"{n_chunks:,}".replace(",", ".")  # German thousands separator
+    steps = [
+        (f"**1. The statutes.** The {len(CORPUS)} federal laws listed under Sources are downloaded as XML from "
+         f"gesetze-im-internet.de and split into {n_chunks:,} paragraphs (Absätze). Every paragraph keeps its "
+         "citation, its date and the sections it refers to.",
+         f"Die {len(CORPUS)} Bundesgesetze werden als XML heruntergeladen und in {n_de} Absätze zerlegt, jeweils mit "
+         "Fundstelle, Stand und Querverweisen."),
+        ("**2. Search across languages.** A multilingual embedding model (bge-m3) turns every paragraph and your "
+         "question into vectors, so a question in Korean or Arabic finds German text by meaning, not by words. "
+         "A keyword search (BM25) can be added, fused by rank (RRF).",
+         "Ein mehrsprachiges Embedding-Modell (bge-m3) findet deutsche Absätze nach Bedeutung, auch bei Fragen auf "
+         "Koreanisch oder Arabisch; optional kombiniert mit Stichwortsuche (BM25)."),
+        ("**3. Retrieval-augmented generation (RAG).** The language model does not answer from memory. It gets only "
+         "the paragraphs the search found and must cite them, e.g. [AufenthG § 16b Abs. 3]. Four search strategies "
+         "can be chosen above; the most thorough one (agent) splits the question, writes German legal search "
+         "terms, follows cross-references between sections and searches again if something is missing.",
+         "Das Sprachmodell antwortet nicht aus dem Gedächtnis, sondern nur aus den gefundenen Absätzen und muss sie "
+         "zitieren. Der Agent zerlegt die Frage, sucht mit deutschen Fachbegriffen, folgt Querverweisen und sucht "
+         "bei Lücken erneut."),
+        ("**4. Checking the answer.** Every citation is checked against the paragraphs that were actually found; "
+         "citations that were not are marked ⚠️. The answer also states its type: an answer, out of scope, or "
+         "only the requirements without judging your case.",
+         "Jedes Zitat wird mit den gefundenen Absätzen abgeglichen; nicht gefundene werden mit ⚠️ markiert."),
+        ("**5. Knowledge graph (experimental).** People ask with everyday words (\"Anmeldung\", \"get my taxes back\") "
+         "that the statutes do not use. A small hand-built graph links such concepts, in five languages, and "
+         "nationality groups (EU citizens, the countries privileged in AufenthV § 41, the Western Balkans) to the "
+         f"sections that answer them, and adds those sections to the search. It is {kg_state[0]}.",
+         "Ein kleiner, von Hand gebauter Wissensgraph verbindet Alltagsbegriffe in fünf Sprachen und "
+         f"Staatsangehörigkeitsgruppen mit den passenden Vorschriften und ergänzt die Suche. Er ist {kg_state[1]}."),
+        ("**6. Evaluation.** The system is tested on 60 questions asked in six languages and sets, with the "
+         "statute sections that answer them; the knowledge graph is also tested on questions written without "
+         "seeing it. Results and code: [github.com/eyun17/Ge-lyglot](https://github.com/eyun17/Ge-lyglot).",
+         "Getestet mit 60 Fragen in sechs Sprachfassungen; Ergebnisse und Code auf GitHub."),
+    ]
+    return "\n\n".join(bi(en, de_text) for en, de_text in steps)
+
+
+def build_ui(answer_fn, examples: list[list[str]], sources_md: str = "", about_md: str = "") -> gr.Blocks:
     def run(question: str, condition_label: str):
         question = (question or "").strip()
         if not question:
@@ -259,6 +300,9 @@ def build_ui(answer_fn, examples: list[list[str]], sources_md: str = "") -> gr.B
         gr.Examples(examples, inputs=q, label="Example questions from the eval set / Beispielfragen aus dem Evaluationsset")
         with gr.Accordion("📚 Sources / Quellen", open=False):
             gr.Markdown(bi(SOURCE_EN, SOURCE_DE) + "\n\n" + sources_md)
+        if about_md:
+            with gr.Accordion("🛠️ How was this app built? / Wie wurde diese App gebaut?", open=False):
+                gr.Markdown(about_md)
         btn.click(run, [q, cond], [out, src, steps, tr])
         q.submit(run, [q, cond], [out, src, steps, tr])
     return demo
@@ -288,7 +332,7 @@ def main() -> None:
     print(f"ready: {len(idx.chunks)} chunks, vector store {idx.store.name}, model {rag._PIPELINE.llm.name}")
 
     demo = build_ui(lambda qq, c: rag.answer(qq, c, args.index), load_examples(Path(args.evalset)),
-                    source_table(idx.chunks))
+                    source_table(idx.chunks), how_built(len(idx.chunks), kg_on=args.kg))
     demo.launch(share=args.share, server_port=args.port)
 
 

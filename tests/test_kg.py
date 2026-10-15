@@ -36,9 +36,11 @@ def test_match():
     assert g.match("The capital of my country")[1] == []          # "ital" must start a word
     assert g.match("Ich bin Österreicher")[1] == ["eu"]
     # a spouse of an EU citizen falls under FreizügG/EU § 3, not under the Residence Act's family reunification
-    secs = g.sections("I'm French. Can my American spouse live with me?")
-    assert ("FreizügG/EU", "3", "1") in secs and ("AufenthG", "30", None) in secs
-    assert ("FreizügG/EU", "3", "1") not in g.sections("Can my spouse live with me in Germany?")
+    secs, removed = g.plan("I'm French. Can my American spouse live with me?")
+    assert secs[0] == ("FreizügG/EU", "3", "1")                       # most specific first
+    assert ("AufenthG", "30") in removed and ("AufenthG", "30", None) not in secs
+    plain = g.sections("Can my spouse live with me in Germany?")
+    assert ("FreizügG/EU", "3", "1") not in plain and ("AufenthG", "30", None) in plain
 
 
 def test_kg_search_adds_sections_and_keeps_unmatched_questions():
@@ -108,3 +110,36 @@ def test_compare_statistics():
     b = {("ko", f"q{i}"): {"recall": 1.0 if i < 15 else 0.0} for i in range(20)}
     r = compare(a, b, ["recall"])[0]
     assert r["diff"] == 0.75 and r["better"] == 15 and r["worse"] == 0 and r["ci_low"] > 0.5 and r["p"] < 0.001
+
+
+def test_relative_nationality_is_not_the_askers():
+    g = ConceptGraph()
+    for q in ["저는 프랑스 사람이고 독일에서 일하고 있습니다. 미국인 배우자도 같이 독일에 살 수 있나요?",
+              "I'm French and work in Germany. Can my American spouse live in Germany with me?",
+              "Ich bin Franzose und arbeite in Deutschland. Kann mein amerikanischer Ehepartner mit mir leben?",
+              "Sono francese e lavoro in Germania. Il mio coniuge americano può vivere con me in Germania?",
+              "أنا فرنسي وبشتغل بألمانيا. مرتي أو جوزي أمريكاني، فيه يعيش معي بألمانيا؟"]:
+        assert g.match(q)[1] == ["eu"], q                              # not "privileged" for the US spouse
+    assert g.match("저는 미국인인데 독일에서 석사를 졸업하면")[1] == ["privileged"]
+
+
+def test_instead_of_removes_sections_from_the_ranking():
+    chunks = [
+        {"id": "AufenthG-30-1", "law": "AufenthG", "section": "30", "absatz": "1", "title": "Ehegattennachzug",
+         "text": "Dem Ehegatten eines Ausländers ist eine Aufenthaltserlaubnis zu erteilen.", "cross_refs": []},
+        {"id": "FreizügG/EU-3-1", "law": "FreizügG/EU", "section": "3", "absatz": "1", "title": "Familienangehörige",
+         "text": "Familienangehörige der Unionsbürger haben das Recht nach § 2 Abs. 1.", "cross_refs": []},
+    ]
+    with tempfile.TemporaryDirectory() as d:
+        p = Path(d) / "chunks.jsonl"
+        p.write_text("\n".join(json.dumps(c) for c in chunks), encoding="utf-8")
+        idx = LawIndex.build(p, Path(d) / "idx", FakeEmbedder())
+        hits = kg_search(idx, ConceptGraph(), "I'm French. Can my American spouse (Ehegatten) live with me?", k=2)
+        assert [h["id"] for h in hits] == ["FreizügG/EU-3-1"]           # § 30 does not apply to an EU citizen's spouse
+
+
+def test_manifest_accepts_lists_of_paths(tmp_path):
+    """eval_answers --items passes a list of paths; writing the manifest must not fail on it."""
+    from evaluation.manifest import write_manifest
+    m = write_manifest(tmp_path / "m.json", args={"items": [Path("evalset/heldout/ko.jsonl")], "index": Path("x")})
+    assert m["args"]["items"] == ["evalset/heldout/ko.jsonl"] and json.loads((tmp_path / "m.json").read_text())

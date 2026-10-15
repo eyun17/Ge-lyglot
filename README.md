@@ -35,6 +35,17 @@ GesetzPolyglot is a research prototype, meant only as an aid for understanding G
 The same notice is shown in the web app, and every answer ends with a short version of it in the language of the question.
 
 
+## How it works
+
+The same explanation is shown in the app, under "How was this app built?".
+
+1. **The statutes.** The 14 federal laws are downloaded as XML from gesetze-im-internet.de and split into 10,029 paragraphs (Absätze). Every paragraph keeps its citation, its date and the sections it refers to.
+2. **Search across languages.** A multilingual embedding model (bge-m3) turns every paragraph and the question into vectors, so a question in Korean or Arabic finds German text by meaning, not by words. A keyword search (BM25) can be added, fused by rank (RRF).
+3. **Retrieval-augmented generation (RAG).** The language model does not answer from memory. It gets only the paragraphs the search found and must cite them, e.g. [AufenthG § 16b Abs. 3]. There are four search strategies; the most thorough one (the agent) splits the question, writes German legal search terms, follows cross-references between sections and searches again if something is missing.
+4. **Checking the answer.** Every citation is checked against the paragraphs that were actually found; citations that were not are flagged. The answer also states its type: an answer, out of scope, or only the requirements without judging the user's case.
+5. **Knowledge graph (experimental).** People ask with everyday words ("Anmeldung", "get my taxes back") that the statutes do not use. A small hand-built graph links such concepts, in five languages, and nationality groups (EU citizens, the countries privileged in AufenthV § 41, the Western Balkans) to the sections that answer them, and adds those sections to the search. It is off by default while it is being evaluated (`--kg` turns it on); see [the experiment](#experiment-a-multilingual-concept-graph).
+6. **Evaluation.** The system is tested on 60 questions asked in six language sets, with the statute sections that answer them; the knowledge graph is also tested on questions written without seeing it. See [Evaluation](#evaluation).
+
 ## Overview
 
 ```
@@ -82,7 +93,7 @@ results/                evaluation output (git-ignored)
 | [gesetzpolyglot/rag.py](gesetzpolyglot/rag.py) | Retrieve → generate → validate citations. Each answer has a status: `answer`, `refuse_out_of_scope` or `explain_without_judgment`. |
 | [gesetzpolyglot/concepts.py](gesetzpolyglot/concepts.py), [kg.py](gesetzpolyglot/kg.py) | Experiment: a hand-written multilingual concept graph that adds the sections behind everyday words to the search (see [the experiment](#experiment-a-multilingual-concept-graph)). |
 | [gesetzpolyglot/agent.py](gesetzpolyglot/agent.py) | Splits the question into sub-questions, follows cross-references, checks whether the evidence is sufficient, and retries retrieval up to 2 times. |
-| [app.py](app.py) | Gradio web UI in English, with a small German gloss under each element (German is the language of the statutes). Answers come in the language of the question. A Sources panel lists every statute with its download date and last amendment. |
+| [app.py](app.py) | Gradio web UI in English, with a small German gloss under each element (German is the language of the statutes). Answers come in the language of the question. A Sources panel lists every statute with its download date and last amendment, and "How was this app built?" explains the pipeline ([How it works](#how-it-works)). `--kg` turns on the concept graph. |
 | [evaluation/eval_retrieval.py](evaluation/eval_retrieval.py) | Section-level recall@k, no LLM. |
 | [evaluation/eval_answers.py](evaluation/eval_answers.py) | End-to-end evaluation with the LLM on chosen items: recall, answer status, citations, cost. |
 | [evaluation/ablation.py](evaluation/ablation.py), [compare.py](evaluation/compare.py), [manifest.py](evaluation/manifest.py) | One command for a comparison with and without the concept graph; paired statistics (bootstrap intervals, McNemar, permutation test); a record of what each run depended on. See [Comparing runs](#comparing-runs-with-and-without-the-graph). |
@@ -300,7 +311,7 @@ Numpy and Chroma give almost the same recall (dense 0.354 vs 0.353; identical to
 
 ### Experiment: a multilingual concept graph
 
-The retrieval misses above are mostly vocabulary: people write "get my taxes back", "Anmeldung" or "I'm Portuguese", the statutes say *Veranlagung*, "Wer eine Wohnung bezieht …" and *Unionsbürger*. [concepts.py](gesetzpolyglot/concepts.py) is a small hand-written graph that bridges this: 40 concepts (Blue Card, registration, tax refund, health insurance, …), each with aliases in Korean, English, German, Arabic and Italian and the sections that answer it, plus four country groups taken from the statutes (EU/EEA/Switzerland, the states of AufenthV § 41 Abs. 1 and 2, the Western Balkans of BeschV § 26 Abs. 2). Some links are conditional: a spouse of an EU citizen brings in FreizügG/EU § 3, not the Residence Act's family reunification. [kg.py](gesetzpolyglot/kg.py) finds concepts and nationalities in the question (a country named as a destination, "travel to the Netherlands", does not count as nationality) and fuses their sections with the normal ranking via RRF; a question without a known concept keeps its ranking.
+The retrieval misses above are mostly vocabulary: people write "get my taxes back", "Anmeldung" or "I'm Portuguese", the statutes say *Veranlagung*, "Wer eine Wohnung bezieht …" and *Unionsbürger*. [concepts.py](gesetzpolyglot/concepts.py) is a small hand-written graph that bridges this: 40 concepts (Blue Card, registration, tax refund, health insurance, …), each with aliases in Korean, English, German, Arabic and Italian and the sections that answer it, plus four country groups taken from the statutes (EU/EEA/Switzerland, the states of AufenthV § 41 Abs. 1 and 2, the Western Balkans of BeschV § 26 Abs. 2). Some links are conditional: a spouse of an EU citizen brings in FreizügG/EU § 3, not the Residence Act's family reunification. [kg.py](gesetzpolyglot/kg.py) finds concepts and nationalities in the question (a country named as a destination, "travel to the Netherlands", or next to a relative, "my American spouse", is not taken as the asker's nationality) and fuses their sections with the normal ranking via RRF; a question without a known concept keeps its ranking.
 
 ```bash
 python -m gesetzpolyglot.kg "저는 포르투갈 사람인데 독일 지사로 파견되면 어떤 체류허가가 필요한가요?"
@@ -312,17 +323,35 @@ python -m evaluation.eval_retrieval --modes dense dense+kg --evalset evalset/hel
 
 | Questions | dense | dense + graph | hybrid + graph |
 |---|---|---|---|
-| evalset v2 (336) | 0.353 | 0.792 | 0.789 |
-| **held-out questions (20, Korean)** | 0.233 | **0.300** | **0.325** |
+| evalset v2 (336) | 0.353 | 0.818 | 0.816 |
+| **held-out questions (37, Korean)** | 0.198 | **0.302** | **0.315** |
 
-**The evalset number is not a real estimate.** The graph was written by someone who knew the evaluation questions and their gold sections, and 101 of the 104 gold sections ended up in it: on evalset v2 it mostly looks up the answers it was given. To measure it honestly, the project owner wrote 22 new questions without seeing the graph ([evalset/heldout/ko.jsonl](evalset/heldout/ko.jsonl); 15 of them from situations suggested by Claude, worded by the owner), the gold sections were fixed from the statute text before running the graph, and the graph was not changed after seeing the results (except an Arabic alias for Austria that never matched, which changes none of the held-out numbers).
+**The evalset number is not a real estimate.** The graph was written by someone who knew the evaluation questions and their gold sections, and 101 of the 104 gold sections ended up in it: on evalset v2 it mostly looks up the answers it was given. To measure it honestly, the project owner wrote 40 new questions without seeing the graph ([evalset/heldout/ko.jsonl](evalset/heldout/ko.jsonl); 33 of them from situations suggested by Claude, worded by the owner), the gold sections were fixed from the statute text before running the graph, and the graph was not changed after seeing the results (except an Arabic alias for Austria that never matched, which changes none of the held-out numbers).
 
 - **On new questions the graph helps a little: +0.07 (dense) to +0.12 (hybrid).** When a concept matches, it works: "a month in Germany without a visa" (0 → 1.00), "is a German degree better for permanent residence" (0 → 0.50).
-- **Coverage is the limit.** 12 of the 20 questions matched no concept at all ("moving to another city", "months spent abroad", "PhD", "internship", "home-office deduction"), because people phrase things in more ways than hand-written aliases cover. One question got worse (a spouse joining a permanent resident: 1.00 → 0.50), because the graph's sections pushed out one that dense search had found.
+- **Coverage is the limit.** In the first 20, 12 questions matched no concept at all ("moving to another city", "months spent abroad", "PhD", "internship", "home-office deduction"), because people phrase things in more ways than hand-written aliases cover. One question got worse (a spouse joining a permanent resident: 1.00 → 0.50), because the graph's sections pushed out one that dense search had found.
+- **Three fixes found by reading one evalset question.** For the French worker's American spouse (n60) the graph used to take "American" for the asker's nationality, put the most specific section (FreizügG/EU § 3, family members of EU citizens) last, and keep AufenthG § 30 (family reunification for non-EU citizens) at the top, a law that does not apply. Now a country next to a relative does not count, the most specific sections come first, and a concept can name sections that no longer apply once a nationality group is known (`instead_of`): they are removed from the ranking. On evalset v2 this moved 0.792 to 0.818 (19 questions better, one worse: the Korean Blue-Card-without-degree question n27 lost BeschV § 26, now ranked after the concepts' sections); on the held-out questions nothing changed, because none of them names a relative's nationality. As the fixes came from an evalset question, only the held-out number counts.
 - **The new questions are harder than evalset v2** (Korean dense 0.233 against 0.330), so the held-out set is also a useful check of the evaluation set itself.
 - **Indexing the titles of referenced sections did not help.** Adding the titles of the sections a chunk cites ("§ 25 Absatz 2" → "Aufenthalt aus humanitären Gründen", 4,418 chunks) changed evalset v2 from 0.353 to 0.357 (10 questions better, 9 worse) and on v1 lowered the refugee questions it was meant for (0.400 → 0.350). It stays an option (`retrieval.py build --ref-titles`), not the default.
 
 Next: let the LLM pick concepts in `rewrite` and the agent's plan instead of matching aliases, and measure it on the held-out questions before changing the graph again.
+
+#### With the LLM: does the graph still help?
+
+The numbers above are retrieval only. To see whether the graph still matters once an LLM writes the search queries and the answer, all four conditions were run with and without it on the 40 held-out questions (gpt-5.4-mini, prompt v4, 320 answers, about $2.00, 2026-10-15; [results/experiments/kg-llm-heldout40](results/experiments/kg-llm-heldout40/report.md), graph as before the held-out questions were seen):
+
+| Condition | Status matches, without → with graph | recall@8, without → with graph | Graph effect on recall | LLM calls | s / question |
+|---|---|---|---|---|---|
+| dense | 28 → 31 / 40 | 0.198 → 0.302 | **+0.104, p = 0.03** | 1 | 3.6–3.9 |
+| hybrid | 32 → 28 / 40 | 0.185 → 0.315 | **+0.131, p = 0.005** | 1 | 3.4–3.5 |
+| rewrite | 37 → 38 / 40 | 0.423 → 0.450 | +0.027, p = 0.61 | 2 | 5.3–5.5 |
+| agent | 37 → **38** / 40 | 0.428 → **0.509** | +0.081, p = 0.24 | 4.6 | 11.3–11.5 |
+
+- **When the LLM writes the queries, it already does most of what the graph does.** `rewrite` alone (0.423) beats `dense` with the graph (0.302): turning "get my taxes back" into German legal terms is much of what the graph's aliases do. The best overall is the agent with the graph (38/40, 0.554 of the gold sections in its whole context), but its lead over the agent without the graph is not significant.
+- **Better retrieval did not significantly change the answer status** in any condition (all p > 0.2).
+- **The graph did not cause invalid citations.** There were 0 to 2 per 40 answers in every variant, all to sections the model named from general knowledge, none to sections the graph had added; the graph also costs no extra tokens.
+- **Single runs are noisy.** GPT-5-family models reject `temperature`, so answers vary between runs. On the 18 questions where the graph matched nothing, retrieval was identical with and without it, yet the status still changed for 4 (dense) and 3 (hybrid) of them. Status differences of a few questions, such as hybrid's 32 → 28, are within that noise. Repeated runs would separate the two; they were not done to save cost.
+- The graph's known weaknesses showed up here too: "네덜란드에서" (in the Netherlands) taken for EU nationality (h39), and a British asker who lost his job given the visa-free entry rule instead (h36).
 
 #### Comparing runs with and without the graph
 
@@ -349,7 +378,7 @@ The first run is retrieval only and free; the second adds the LLM runs (all four
 python -m evaluation.compare results/experiments/kg-2026-10-14/retrieval_heldout_dense.jsonl results/experiments/kg-2026-10-14/retrieval_heldout_dense+kg.jsonl
 ```
 
-It pairs questions by (set, id) and reports, per metric, the difference with a 95% paired bootstrap interval, how many questions got better or worse, and a p-value (exact McNemar for yes/no metrics such as the answer status, a sign-flip permutation test otherwise), with fixed seeds so the numbers are reproducible. On the 20 held-out questions the gain is not significant yet (dense: +0.067, 95% interval −0.05 to +0.20, p = 0.5; hybrid: +0.117, p = 0.12): more held-out questions are needed before it can be claimed. For a reportable run, commit first so the manifest shows a clean tree, and never use held-out questions to build the graph.
+It pairs questions by (set, id) and reports, per metric, the difference with a 95% paired bootstrap interval, how many questions got better or worse, and a p-value (exact McNemar for yes/no metrics such as the answer status, a sign-flip permutation test otherwise), with fixed seeds so the numbers are reproducible. On the first 20 held-out questions the gain was not significant (dense +0.067, p = 0.5; hybrid +0.117, p = 0.12). With 37 it is: dense +0.104 (95% interval +0.02 to +0.20, p = 0.03), hybrid +0.131 (+0.05 to +0.22, p = 0.005), 9 questions better and none worse with hybrid. The share of questions with every gold section found does not change significantly yet (p = 0.25). For a reportable run, commit first so the manifest shows a clean tree, and never use held-out questions to build the graph.
 
 ### Evaluation set v1 (archived)
 
@@ -480,7 +509,7 @@ Without the LLM, the same 20 items give dense 0.765 and hybrid 0.588.
 | gpt-5.4-mini | v2 | 9 / 10 | 0.65 / 0.50 |
 | gpt-5.4 | v2 | 10 / 10 | 0.60 / 0.65 |
 
-Costs are API token counts times list prices (gpt-5.4: $2.50 / $15 per 1M input / output tokens; gpt-5.4-mini: $0.75 / $4.50 and gpt-5.4-nano: $0.20 / $1.25, as listed by third-party trackers). All LLM experiments so far cost about $6.80. Average time per question with the agent on the validation set: nano 14 s, mini 10 s, gpt-5.4 24 s.
+Costs are API token counts times list prices (gpt-5.4: $2.50 / $15 per 1M input / output tokens; gpt-5.4-mini: $0.75 / $4.50 and gpt-5.4-nano: $0.20 / $1.25, as listed by third-party trackers). All LLM experiments so far cost about $8.80. Average time per question with the agent on the validation set: nano 14 s, mini 10 s, gpt-5.4 24 s.
 
 **Findings on v1**
 - **A local 8B model is not good enough yet.** llama3 8B on a 16 GB M2 got 37/80. 33 answers had no valid status line, it answered 5 out-of-scope questions instead of refusing, and its rewritten queries cite made-up sections ("§ 25 Abs. 3 EStG"), so `rewrite` and `agent` retrieved far less (0.24–0.27) than searching the question directly (0.765). Some answers were plainly wrong, e.g. "you are not required to notify the immigration office" when AufenthG § 82 Abs. 6 requires it within two weeks. It also took about 90 seconds per agent question. Newer 8B models (e.g. qwen3:8b) may do better and can be tested the same way with `--provider ollama --model …`.
@@ -528,6 +557,7 @@ AsylG was the first law added this way; EStG, AO, SGB IV and SGB VI followed. Th
 - `rewrite`: search the original question together with the rewritten queries, so easy questions do not lose what dense search finds
 - concept graph: let the LLM pick concepts in `rewrite` and the agent's plan instead of matching aliases, then grow the graph, measuring each step on new held-out questions ([experiment](#experiment-a-multilingual-concept-graph))
 - collect more held-out questions from people who have not seen the graph, in every question language
+- repeat each LLM run (e.g. three times) to separate the graph's effect from run-to-run variation (about three times the cost)
 - split very long chunks (EStG § 3 is 54,000 characters) by item, so dense search sees all of them
 - a commercially usable translation model, if translating before retrieval goes into the app
 
@@ -552,6 +582,6 @@ Tests use a fake embedder, so they run without the bge-m3 model or an API key. `
 
 ## Not in git
 
-`data/index/` (embeddings and Chroma), `results/`, `.env` and `.venv/` are git-ignored. To reproduce, run steps 1–2 above, then `evaluation.eval_retrieval` and `evaluation.eval_answers`; the item lists for the LLM runs are in [evalset/splits.json](evalset/splits.json).
+`data/index/` (embeddings and Chroma), `results/`, `.env` and `.venv/` are git-ignored, except the summary of each experiment (`results/experiments/<name>/report.md` and `manifest.json`), which is kept so reported numbers can be traced to a run. To reproduce, run steps 1–2 above, then `evaluation.eval_retrieval` and `evaluation.eval_answers`; the item lists for the LLM runs are in [evalset/splits.json](evalset/splits.json).
 
 A Korean version of this README is in [README.ko.md](README.ko.md).

@@ -24,6 +24,7 @@ from collections import defaultdict
 from pathlib import Path
 
 BINARY = {"status_ok", "all_found"}
+LOWER_IS_BETTER = {"invalid"}  # invalid citations: fewer is better, so "better" counts questions where B has fewer
 METRICS = {"retrieval": ["recall", "all_found"], "answers": ["recall@8", "recall_ctx", "status_ok", "invalid"]}
 SEED, RESAMPLES = 20261014, 10_000
 
@@ -84,7 +85,9 @@ def compare(a: dict[tuple, dict], b: dict[tuple, dict], metrics: list[str]) -> l
         out.append({
             "metric": m, "n": len(pairs), "mean_a": sum(xa) / len(xa), "mean_b": sum(xb) / len(xb),
             "diff": sum(diffs) / len(diffs), "ci_low": lo, "ci_high": hi,
-            "better": sum(d > 0 for d in diffs), "worse": sum(d < 0 for d in diffs), "same": sum(d == 0 for d in diffs),
+            "better": sum((d < 0) if m in LOWER_IS_BETTER else (d > 0) for d in diffs),
+            "worse": sum((d > 0) if m in LOWER_IS_BETTER else (d < 0) for d in diffs),
+            "same": sum(d == 0 for d in diffs),
             "p": mcnemar_p(xa, xb) if m in BINARY else permutation_p(diffs, random.Random(SEED + 1)),
             "test": "McNemar (exact)" if m in BINARY else "sign-flip permutation",
         })

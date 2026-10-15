@@ -1,7 +1,12 @@
 .venv/
 __pycache__/
 data/index/
-results/
+results/*
+# experiment summaries are kept (small, needed to report results); per-question files stay local
+!results/experiments/
+results/experiments/*/*
+!results/experiments/*/report.md
+!results/experiments/*/manifest.json
 .env
 .idea/
 .DS_Store
