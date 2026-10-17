@@ -13,3 +13,4 @@ results/experiments/*/*
 .pytest_cache/
 .venv-py39-old/
 data/index_*/
+dist/

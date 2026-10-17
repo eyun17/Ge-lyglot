@@ -91,7 +91,7 @@ text in `question_before_review`.
 [heldout/ko.jsonl](heldout/ko.jsonl) holds 40 Korean questions written by the project owner without seeing the
 concept graph (`gesetzpolyglot/concepts.py`), to measure it honestly: the main set was known while the graph was
 written. h1–h7 are the owner's own topics, h8–h40 are situations suggested by Claude and worded by the owner. The
-gold sections were fixed from the statute text before the graph was run. Keep this set out of graph-building:
+gold sections were fixed from the statute text before the graph was run. Since 2026-10-17 these 40 questions are dev data: the graph's nationality roles and 19 concepts were fitted to them; their clean results were recorded before that (results/experiments/kg-2026-10-15-heldout40, kg-llm-heldout40). New questions for measuring the graph go into a separate test file. Keep a test set out of graph-building:
 once a question has shaped the graph, it no longer measures it. Same fields as the main set, plus `written_by`
 and `gold_by`.
 

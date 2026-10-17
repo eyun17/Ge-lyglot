@@ -48,8 +48,10 @@ CONCEPTS: dict[str, dict] = {
         "ar": ["البحث عن عمل", "البحث عن شغل", "لاقي شغل"], "it": ["cercare lavoro", "cerco lavoro"],
         "sections": ["AufenthG § 20"]},
     "studying": {
-        "ko": ["유학생", "재학 중", "공부하면서"], "en": ["student", "while they study", "while i study"],
-        "de": ["studierende", "studium", "student"], "ar": ["طالب", "طلاب"], "it": ["student", "studi"],
+        "ko": ["유학생", "재학 중", "공부하면서", "학생비자", "학생 비자", "대학원 합격"],
+        "en": ["student", "while they study", "while i study", "student visa"],
+        "de": ["studierende", "studium", "student", "studentenvisum"], "ar": ["طالب", "طلاب", "تأشيرة دراسة", "فيزا دراسة"],
+        "it": ["student", "studi", "visto per studio"],
         "sections": ["AufenthG § 16b"]},
     "ausbildung": {
         "ko": ["아우스빌둥"], "en": ["ausbildung"], "de": ["ausbildung"], "ar": ["أوسبيلدونغ", "الأوسبيلدونغ"],
@@ -80,7 +82,8 @@ CONCEPTS: dict[str, dict] = {
     "freelance": {
         "ko": ["프리랜서"], "en": ["freelance"], "de": ["freiberuf", "freelancer"], "ar": ["فريلانسر", "العمل الحر"],
         "it": ["freelance", "libero professionista"],
-        "sections": ["AufenthG § 21 Abs. 5", "AO § 138 Abs. 1", "EStG § 18"]},
+        "sections": ["AufenthG § 21 Abs. 5", "AO § 138 Abs. 1", "EStG § 18"],
+        "with_concept": {"studying": ["AufenthG § 21 Abs. 6"]}},  # self-employment next to another residence purpose
     "fast_track": {
         "ko": ["앞당길", "빨리 데려"], "en": ["speed up", "quickly"], "de": ["beschleunig"],
         "ar": ["تسريع", "تسرّع", "بسرعة"], "it": ["accelerare", "rapidamente"],
@@ -90,10 +93,11 @@ CONCEPTS: dict[str, dict] = {
         "ar": ["الوكالة الاتحادية للعمل", "وكالة العمل الاتحادية"], "it": ["agenzia federale per il lavoro"],
         "sections": ["AufenthG § 39", "BeschV § 36"]},
     "job_ends": {
-        "ko": ["그만두", "퇴사", "해고"], "en": ["quit my job", "leave my job", "laid off"],
-        "de": ["kündige", "gekündigt"], "ar": ["تركت الشغل", "تركت وظيفتي", "طردوني", "فُصلت"],
-        "it": ["lascio il mio", "licenziat"],
-        "sections": ["AufenthG § 82 Abs. 6"]},
+        "ko": ["그만두", "퇴사", "해고", "일자리를 잃", "실직"], "en": ["quit my job", "leave my job", "laid off", "lost my job"],
+        "de": ["kündige", "gekündigt", "arbeit verloren", "job verloren"],
+        "ar": ["تركت الشغل", "تركت وظيفتي", "طردوني", "فُصلت", "خسرت شغلي", "فقدت وظيفتي"],
+        "it": ["lascio il mio", "licenziat", "perso il lavoro"],
+        "sections": ["AufenthG § 82 Abs. 6", "AufenthG § 7 Abs. 2"]},
     "permit_refused": {
         "ko": ["거절될", "거절했", "거절당"], "en": ["refused", "rejected"], "de": ["abgelehnt"],
         "ar": ["رفض", "يرفضو"], "it": ["rifiutat"],
@@ -114,8 +118,10 @@ CONCEPTS: dict[str, dict] = {
         "sections": ["AufenthV § 39", "AufenthV § 41 Abs. 1"]},
     # ---- registration, EU citizens, family, citizenship ------------------------------------------
     "registration": {
-        "ko": ["안멜둥", "주민등록", "전입신고"], "en": ["anmeldung", "register my address"],
-        "de": ["anmeld", "wohnsitz"], "ar": ["تسجيل السكن", "سجّل السكن", "يسجّلوا السكن"], "it": ["anmeldung"],
+        "ko": ["안멜둥", "주민등록", "전입신고", "다른 도시로 이사", "이사하면"],
+        "en": ["anmeldung", "register my address", "move to another city"],
+        "de": ["anmeld", "wohnsitz", "umzug", "umziehe"], "ar": ["تسجيل السكن", "سجّل السكن", "يسجّلوا السكن", "انتقلت لمدينة"],
+        "it": ["anmeldung", "cambio di residenza"],
         "sections": ["BMG § 17 Abs. 1"]},
     "deregistration": {
         "ko": ["압멜둥", "전출신고"], "en": ["abmeldung", "deregister"], "de": ["abmeld"],
@@ -172,9 +178,10 @@ CONCEPTS: dict[str, dict] = {
         "ar": ["الرقم الضريبي"], "it": ["steuer-id", "codice fiscale"],
         "sections": ["AO § 139b"]},
     "foreign_income": {
-        "ko": ["두 나라", "소득이 있는데"], "en": ["both countries", "income in"], "de": ["beiden ländern", "einkommen in"],
-        "ar": ["البلدين", "دخل في", "دخل ب"], "it": ["entrambi i paesi", "redditi anche"],
-        "sections": ["EStG § 34c Abs. 1"]},
+        "ko": ["두 나라", "소득이 있는데", "외국에서 받은 소득", "해외 소득"], "en": ["both countries", "income in", "foreign income"],
+        "de": ["beiden ländern", "einkommen in", "ausländische einkünfte"],
+        "ar": ["البلدين", "دخل في", "دخل ب", "دخل من الخارج"], "it": ["entrambi i paesi", "redditi anche", "redditi esteri"],
+        "sections": ["EStG § 34c Abs. 1", "EStG § 1 Abs. 1", "EStG § 32b Abs. 1"]},
     "tax_objection": {
         "ko": ["이의를 제기", "이의 제기"], "en": ["object", "objection"], "de": ["einspruch"],
         "ar": ["الاعتراض", "اعترض"], "it": ["opposizione"],
@@ -196,6 +203,94 @@ CONCEPTS: dict[str, dict] = {
         "ko": ["예술인사회보험", "예술인"], "en": ["artists' social insurance", "artist"], "de": ["künstlersozial", "künstler"],
         "ar": ["للفنانين", "الفنانين"], "it": ["per artisti", "artisti"],
         "sections": ["KSVG § 1"]},
+    # ---- added 2026-10-17 from the first 40 held-out questions (which are dev data from then on) ---------------
+    "parents_join": {
+        "ko": ["부모님을 모실", "부모님을 데려", "부모님을 초청", "부모를 데려"], "en": ["bring my parents", "my parents to germany"],
+        "de": ["eltern nachholen", "meine eltern nach"], "ar": ["أحضر والدي", "أهلي لألمانيا", "والديّ"],
+        "it": ["portare i miei genitori", "i miei genitori in germania"],
+        "sections": ["AufenthG § 36 Abs. 2", "AufenthG § 28 Abs. 4"]},
+    "german_family": {
+        "ko": ["독일인과 결혼", "독일인 배우자", "독일 사람과 결혼"], "en": ["married to a german", "german spouse", "german wife", "german husband"],
+        "de": ["mit einem deutschen verheiratet", "mit einer deutschen verheiratet", "deutschen ehepartner", "deutsche ehefrau"],
+        "ar": ["متزوج من ألمانية", "متزوجة من ألماني", "زوجي ألماني", "زوجتي ألمانية"],
+        "it": ["sposato con una tedesca", "sposata con un tedesco", "coniuge tedesco"],
+        "sections": ["AufenthG § 28 Abs. 1", "AufenthG § 28 Abs. 2"]},
+    "dual_citizenship": {
+        "ko": ["이중국적", "복수국적"], "en": ["dual citizen", "dual nationality", "two citizenships"],
+        "de": ["doppelte staatsangehörigkeit", "doppelstaat", "zwei staatsangehörigkeiten"],
+        "ar": ["جنسيتين", "مزدوج الجنسية", "مزدوجي الجنسية"], "it": ["doppia cittadinanza"],
+        "sections": ["AufenthG § 2 Abs. 1"]},
+    "asylum_work": {
+        "ko": ["망명 신청자", "망명 신청 중", "난민 신청자"], "en": ["asylum seeker", "asylum application"],
+        "de": ["asylbewerber", "asylverfahren", "asylantrag"], "ar": ["طالب لجوء", "طلب لجوء", "طالبي اللجوء"],
+        "it": ["richiedente asilo", "domanda di asilo"],
+        "sections": ["AsylG § 61 Abs. 1", "AsylG § 61 Abs. 2"]},
+    "duldung": {
+        "ko": ["체류 유예", "둘둥"], "en": ["duldung", "tolerated stay"], "de": ["duldung", "geduldet"],
+        "ar": ["دولدونغ", "إقامة التسامح"], "it": ["duldung", "tollerat"],
+        "sections": ["AufenthG § 60c Abs. 1", "BeschV § 32 Abs. 1"]},
+    "extension_pending": {
+        "ko": ["연장 신청", "만료됐는데", "만료되었는데"], "en": ["extension", "expired"],
+        "de": ["verlängerung beantragt", "abgelaufen"], "ar": ["طلب التمديد", "انتهت صلاحية"], "it": ["proroga", "scadut"],
+        "sections": ["AufenthG § 81 Abs. 4", "AufenthG § 81 Abs. 5"]},
+    "long_absence": {
+        "ko": ["고국에 몇", "몇개월 이상 있으면", "몇 개월 이상 있으면", "해외에 오래"], "en": ["abroad for", "months abroad", "leave germany for"],
+        "de": ["im ausland", "monate ins ausland"], "ar": ["خارج ألمانيا", "برّا ألمانيا لمدة"],
+        "it": ["all'estero per", "mesi all'estero"],
+        "sections": ["AufenthG § 51 Abs. 1", "AufenthG § 51 Abs. 2", "AufenthG § 51 Abs. 10"]},
+    "public_funds": {
+        "ko": ["실업급여", "실업금여", "수당을 받"], "en": ["unemployment benefit", "social benefits"],
+        "de": ["arbeitslosengeld", "sozialleistungen"], "ar": ["إعانة البطالة", "مساعدات اجتماعية"],
+        "it": ["indennità di disoccupazione", "sussidi"],
+        "sections": ["AufenthG § 2 Abs. 3"]},
+    "research_phd": {
+        "ko": ["박사", "연구원"], "en": ["phd", "doctoral", "researcher"], "de": ["promotion", "doktorand", "forscher"],
+        "ar": ["دكتوراه", "باحث"], "it": ["dottorato", "ricercator"],
+        "sections": ["AufenthG § 18d Abs. 1", "AufenthG § 16b Abs. 1"]},
+    "internship": {
+        "ko": ["인턴"], "en": ["internship", "intern"], "de": ["praktikum"], "ar": ["تدريب عملي", "انترنشيب"],
+        "it": ["tirocinio", "stage"],
+        "sections": ["BeschV § 15", "AufenthG § 16e"]},
+    "landlord": {
+        "ko": ["집주인"], "en": ["landlord"], "de": ["vermieter", "wohnungsgeber"], "ar": ["صاحب البيت", "المؤجر"],
+        "it": ["padrone di casa", "proprietario di casa"],
+        "sections": ["BMG § 19 Abs. 1", "BMG § 54 Abs. 2"]},
+    "name_change": {
+        "ko": ["이름 바꾸", "이름을 바꾸", "개명"], "en": ["name change", "change my name", "changed my name"],
+        "de": ["namensänderung", "namen geändert"], "ar": ["تغيير الاسم", "غيرت اسمي"], "it": ["cambio di nome", "cambiato nome"],
+        "sections": ["AufenthV § 72 Abs. 1"]},
+    "remote_work": {
+        "ko": ["원격"], "en": ["remote", "remotely"], "de": ["remote", "fernarbeit"], "ar": ["عن بعد"], "it": ["da remoto"],
+        "sections": ["AufenthG § 4a Abs. 1", "EStG § 1 Abs. 1"]},
+    "business_trip": {
+        "ko": ["출장"], "en": ["business trip"], "de": ["geschäftsreise", "dienstreise"], "ar": ["رحلة عمل", "سفرة شغل"],
+        "it": ["viaggio di lavoro", "trasferta"],
+        "sections": ["BeschV § 16", "BeschV § 30", "AufenthV § 17 Abs. 2"]},
+    "athlete": {
+        "ko": ["축구", "운동선수", "구단"], "en": ["football club", "athlete", "sports club"],
+        "de": ["fußballverein", "sportler", "sportverein"], "ar": ["كرة القدم", "رياضي", "نادي رياضي"],
+        "it": ["squadra di calcio", "atleta"],
+        "sections": ["BeschV § 22", "AufenthV § 17 Abs. 1"]},
+    "schengen_travel": {
+        "ko": ["독일 비자로", "여행갈", "여행 가"], "en": ["schengen", "travel to"], "de": ["schengen", "reisen nach"],
+        "ar": ["شنغن", "السفر إلى"], "it": ["schengen", "viaggiare in"],
+        "sections": ["AufenthG § 6 Abs. 1"]},
+    "tax_deduction": {
+        "ko": ["공제"], "en": ["deduct", "deductible"], "de": ["absetzen", "werbungskosten"], "ar": ["خصم من الضريبة", "اقتطاع"],
+        "it": ["detrarre", "detrazione"],
+        "sections": ["EStG § 9 Abs. 1", "EStG § 10 Abs. 1"]},
+    "home_office": {
+        "ko": ["재택근무"], "en": ["home office", "working from home"], "de": ["homeoffice", "arbeitszimmer"],
+        "ar": ["العمل من البيت", "العمل من المنزل"], "it": ["telelavoro", "lavoro da casa"],
+        "sections": ["EStG § 4 Abs. 5", "EStG § 9 Abs. 5"]},
+    "side_job": {
+        "ko": ["부업"], "en": ["side job", "second job"], "de": ["nebenjob", "nebentätigkeit"], "ar": ["شغل جانبي", "وظيفة جانبية"],
+        "it": ["secondo lavoro"],
+        "sections": ["EStG § 46 Abs. 3", "EStG § 3", "EStG § 40a Abs. 2"]},
+    "capital_income": {
+        "ko": ["주식"], "en": ["stocks", "shares", "dividends"], "de": ["aktien", "dividende"], "ar": ["أسهم", "الأسهم"],
+        "it": ["azioni", "dividendi"],
+        "sections": ["EStG § 32d Abs. 1", "EStG § 20 Abs. 2", "EStG § 32d Abs. 5"]},
 }
 
 # Nationalities named in the statutes. Aliases are country names and demonyms (stems where possible).

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Gradio front end for rag.answer(). English UI with a German gloss below each element.
 
-    python app.py                 # http://127.0.0.1:7860
+    python app.py                 # http://127.0.0.1:7860, every user enters their own API key
+    python app.py --server-key    # answer with the operator's key from .env (local tests, own demos)
     python app.py --share         # temporary public link
-    python app.py --provider ollama               # local model via Ollama (OLLAMA_MODEL, default qwen3:8b)
-    python app.py --provider openai --model gpt-5.4
+    python app.py --server-key --provider ollama               # local model via Ollama (OLLAMA_MODEL, default qwen3:8b)
+    python app.py --server-key --provider openai --model gpt-5.4
 
 Needs data/index (python -m gesetzpolyglot.retrieval build) and an LLM (see gesetzpolyglot/llm.py).
 """
@@ -249,16 +250,33 @@ def how_built(n_chunks: int, kg_on: bool) -> str:
     return "\n\n".join(bi(en, de_text) for en, de_text in steps)
 
 
-def build_ui(answer_fn, examples: list[list[str]], sources_md: str = "", about_md: str = "") -> gr.Blocks:
-    def run(question: str, condition_label: str):
+KEY_NOTE_EN = ("Use your own API key. It is used only for your questions in this browser session: it is not "
+               "stored, logged or shown to anyone. Your question and the statute excerpts found for it are sent to "
+               "the provider you choose, under that provider's terms; you pay for the calls (about 1 cent per "
+               "question with gpt-5.4-mini, more with the agent). Answers were evaluated with gpt-5.4-mini; other "
+               "models may be better or worse.")
+KEY_NOTE_DE = ("Verwenden Sie Ihren eigenen API-Schlüssel. Er wird nur für Ihre Fragen in dieser Sitzung genutzt und "
+               "weder gespeichert noch protokolliert. Frage und gefundene Gesetzesauszüge gehen an den gewählten "
+               "Anbieter; die Kosten tragen Sie. Ausgewertet wurde mit gpt-5.4-mini.")
+
+
+def build_ui(answer_fn, examples: list[list[str]], sources_md: str = "", about_md: str = "",
+             byok: bool = False) -> gr.Blocks:
+    """byok: the user enters provider, model and API key; answer_fn then gets them as a dict."""
+    from gesetzpolyglot.llm import PROVIDER_LABELS, USER_PROVIDERS, explain_error
+
+    def run(question: str, condition_label: str, provider: str = "", model: str = "", key: str = ""):
         question = (question or "").strip()
         if not question:
             return bi("Please enter a question.", "Bitte geben Sie eine Frage ein."), "", "", {}
+        if byok and not (key or "").strip():
+            return bi("Please enter your API key above.", "Bitte geben Sie oben Ihren API-Schlüssel ein."), "", "", {}
         condition = next(k for k, v in CONDITION_LABELS.items() if v == condition_label)
         try:
-            return render(answer_fn(question, condition))
-        except Exception as e:  # show errors in the UI instead of a blank box
-            return bi(f"❌ Error: `{type(e).__name__}: {e}`", "Ein Fehler ist aufgetreten."), "", "", {}
+            creds = {"provider": provider, "model": model, "api_key": key} if byok else None
+            return render(answer_fn(question, condition, creds) if byok else answer_fn(question, condition))
+        except Exception as e:  # show errors in the UI instead of a blank box; never echo the key
+            return bi(f"❌ {explain_error(e, key)}", "Ein Fehler ist aufgetreten."), "", "", {}
 
     with gr.Blocks(title="Gelyglot") as demo:
         gr.Markdown(
@@ -280,6 +298,18 @@ def build_ui(answer_fn, examples: list[list[str]], sources_md: str = "", about_m
                           "Sprache prüfen können."))
         with gr.Accordion("⚠️ Disclaimer — please read / Haftungsausschluss — bitte lesen", open=True):
             gr.Markdown(bi(DISCLAIMER_EN, DISCLAIMER_DE))
+        key_inputs = []
+        if byok:
+            with gr.Accordion("🔑 Your API key / Ihr API-Schlüssel", open=True):
+                gr.Markdown(bi(KEY_NOTE_EN, KEY_NOTE_DE))
+                with gr.Row():
+                    provider = gr.Dropdown([(PROVIDER_LABELS[p], p) for p in USER_PROVIDERS], value="openai",
+                                           label="Provider", info="Anbieter")
+                    model = gr.Textbox(value=USER_PROVIDERS["openai"], label="Model",
+                                       info="Modell (default shown; any model of this provider)")
+                    key = gr.Textbox(type="password", label="API key", info="API-Schlüssel")
+                provider.change(lambda p: USER_PROVIDERS.get(p, ""), provider, model)
+            key_inputs = [provider, model, key]
         with gr.Row():
             with gr.Column(scale=3):
                 q = gr.Textbox(label="Question", info="Frage", lines=3,
@@ -303,8 +333,8 @@ def build_ui(answer_fn, examples: list[list[str]], sources_md: str = "", about_m
         if about_md:
             with gr.Accordion("🛠️ How was this app built? / Wie wurde diese App gebaut?", open=False):
                 gr.Markdown(about_md)
-        btn.click(run, [q, cond], [out, src, steps, tr])
-        q.submit(run, [q, cond], [out, src, steps, tr])
+        btn.click(run, [q, cond, *key_inputs], [out, src, steps, tr])
+        q.submit(run, [q, cond, *key_inputs], [out, src, steps, tr])
     return demo
 
 
@@ -316,9 +346,18 @@ def main() -> None:
     ap.add_argument("--share", action="store_true")
     ap.add_argument("--port", type=int, default=7860)
     ap.add_argument("--kg", action="store_true", help="add the concept graph to retrieval (experimental)")
+    ap.add_argument("--server-key", action="store_true",
+                    help="answer with the operator's LLM from .env / --provider / --model (local tests, own demos). "
+                         "Without it every user must enter their own API key")
     add_llm_args(ap)
     args = ap.parse_args()
-    apply_llm_args(args)
+    if args.server_key:
+        apply_llm_args(args)
+    else:  # public mode: make sure no request can fall back to the operator's key
+        import os
+        from gesetzpolyglot.llm import KEY_ENV_VARS
+        for var in KEY_ENV_VARS:
+            os.environ.pop(var, None)
 
     if not (Path(args.index) / "emb.npy").exists():
         raise SystemExit(f"index not found in {args.index}: run `python -m gesetzpolyglot.retrieval build` first")
@@ -328,11 +367,21 @@ def main() -> None:
     idx = LawIndex.load(Path(args.index))
     idx.embedder  # load bge-m3 now, not on the first question
     from gesetzpolyglot.kg import ConceptGraph
-    rag._PIPELINE = rag.RAG(idx, rag.llm_from_env(), graph=ConceptGraph() if args.kg else None)
-    print(f"ready: {len(idx.chunks)} chunks, vector store {idx.store.name}, model {rag._PIPELINE.llm.name}")
+    graph = ConceptGraph() if args.kg else None
+    if args.server_key:
+        rag._PIPELINE = rag.RAG(idx, rag.llm_from_env(), graph=graph)
+        print(f"ready: {len(idx.chunks)} chunks, vector store {idx.store.name}, operator's model {rag._PIPELINE.llm.name}")
+        answer_fn = lambda qq, c: rag.answer(qq, c, args.index)  # noqa: E731
+    else:
+        from gesetzpolyglot.llm import make_llm
 
-    demo = build_ui(lambda qq, c: rag.answer(qq, c, args.index), load_examples(Path(args.evalset)),
-                    source_table(idx.chunks), how_built(len(idx.chunks), kg_on=args.kg))
+        def answer_fn(qq, c, creds):  # one LLM client per request, with the user's key; the index is shared
+            llm = make_llm(creds["provider"], creds["model"], creds["api_key"])
+            return rag.RAG(idx, llm, graph=graph).answer(qq, c)
+        print(f"ready: {len(idx.chunks)} chunks, vector store {idx.store.name}; users bring their own API key")
+
+    demo = build_ui(answer_fn, load_examples(Path(args.evalset)), source_table(idx.chunks),
+                    how_built(len(idx.chunks), kg_on=args.kg), byok=not args.server_key)
     demo.launch(share=args.share, server_port=args.port)
 
 

@@ -1,7 +1,7 @@
 """LLM clients and how the terminal chooses one (--provider, --model, .env).
 
-    python app.py --provider ollama                    # local model (OLLAMA_MODEL, default qwen3:8b)
-    python app.py --provider openai --model gpt-5.4    # OpenAI API
+    python app.py --server-key --provider ollama                    # local model (OLLAMA_MODEL, default qwen3:8b)
+    python app.py --server-key --provider openai --model gpt-5.4    # OpenAI API
     python -m evaluation.eval_answers --split validation --provider ollama --model llama3:8b
 
 Command-line options win over the environment, which wins over .env.
@@ -84,9 +84,10 @@ class LLM(Protocol):
 
 
 class AnthropicLLM:
-    def __init__(self, model: str):
+    def __init__(self, model: str, api_key: str | None = None):
         import anthropic
-        self.name, self.client = model, anthropic.Anthropic()
+        # without api_key the SDK reads ANTHROPIC_API_KEY from the environment
+        self.name, self.client = model, anthropic.Anthropic(**({"api_key": api_key} if api_key else {}))
         self.usage = {"input_tokens": 0, "output_tokens": 0}  # running total, for cost reports
 
     def complete(self, system: str, user: str, max_tokens: int = 1200) -> str:
@@ -105,10 +106,12 @@ class OpenAICompatLLM:
     one, drop or rename it once and remember that for later calls.
     """
 
-    def __init__(self, model: str, base_url: str | None = None, reasoning_effort: str | None = None):
+    def __init__(self, model: str, base_url: str | None = None, reasoning_effort: str | None = None,
+                 api_key: str | None = None):
         from openai import OpenAI
         self.name = model
-        self.client = OpenAI(base_url=base_url)  # reads OPENAI_API_KEY
+        # without api_key the SDK reads OPENAI_API_KEY from the environment
+        self.client = OpenAI(base_url=base_url, **({"api_key": api_key} if api_key else {}))
         self.extra: dict = {"temperature": 0}
         if reasoning_effort:
             self.extra["reasoning_effort"] = reasoning_effort
@@ -203,6 +206,53 @@ class OllamaLLM:
                   f"raise OLLAMA_NUM_CTX", file=sys.stderr)
         text = out.get("message", {}).get("content", "")
         return re.sub(r"<think>.*?</think>\s*", "", text, flags=re.S)  # in case a model thinks anyway
+
+
+# ---- the user's own key (the public app) -------------------------------------------------------------
+# Providers a user can pick in the app, with the default model (the user can type another one). Google's
+# Gemini models are reached through Google's OpenAI-compatible endpoint, so no extra SDK is needed.
+# Ollama is not offered: a server cannot reach a model on the user's machine.
+USER_PROVIDERS = {"openai": "gpt-5.4-mini", "anthropic": "claude-haiku-5-5", "google": "gemini-2.5-flash"}
+PROVIDER_LABELS = {"openai": "OpenAI", "anthropic": "Claude (Anthropic)", "google": "Google Gemini"}
+GOOGLE_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+KEY_ENV_VARS = ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY")
+
+
+def make_llm(provider: str, model: str, api_key: str) -> LLM:
+    """An LLM client for exactly this key. Never falls back to a key in the environment: an empty key is an
+    error, so the public app cannot spend the operator's credit by accident."""
+    api_key = (api_key or "").strip()
+    if not api_key:
+        raise ValueError("no API key given")
+    model = (model or "").strip() or USER_PROVIDERS.get(provider, "")
+    if not model:
+        raise ValueError("no model given")
+    if provider == "anthropic":
+        return AnthropicLLM(model, api_key=api_key)
+    if provider == "openai":
+        return OpenAICompatLLM(model, None, os.environ.get("LLM_REASONING_EFFORT", "low") or None, api_key=api_key)
+    if provider == "google":
+        return OpenAICompatLLM(model, GOOGLE_BASE_URL, None, api_key=api_key)
+    raise ValueError(f"unknown provider: {provider} ({', '.join(USER_PROVIDERS)})")
+
+
+def explain_error(e: Exception, api_key: str = "") -> str:
+    """A readable reason for a failed provider call, with the key never echoed back."""
+    name, msg = type(e).__name__, str(e)
+    if api_key:
+        msg = msg.replace(api_key.strip(), "***")
+    code = getattr(e, "status_code", None)
+    if code == 401 or "AuthenticationError" in name:
+        return "The provider rejected the API key (401). Check that it is correct and active."
+    if code == 429 or "RateLimitError" in name:
+        return "The provider refused the request (429): no credit left, or too many requests. Check your account."
+    if code == 404 or "NotFoundError" in name:
+        return "The provider does not know this model (404). Check the model name."
+    if code == 403 or "PermissionDenied" in name:
+        return "The key has no access to this model (403)."
+    if "APIConnectionError" in name or "ConnectError" in name:
+        return "Could not reach the provider. Check your connection."
+    return f"{name}: {msg[:300]}"
 
 
 def llm_from_env() -> LLM:

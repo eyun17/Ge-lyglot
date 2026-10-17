@@ -208,9 +208,17 @@ python app.py
 
 The app runs at http://127.0.0.1:7860; `--share` creates a temporary public link.
 
+**Whose API key?** By default every user enters their own key in the app (OpenAI, Claude or Google Gemini) and pays for their own questions; the operator's keys are removed from the app's environment at start, so a request can never fall back to them. The key lives only in that browser session and is never stored, logged or shown. To answer with your own key from `.env` instead, for local tests or your own demos, start the app with `--server-key`:
+
+```bash
+python app.py --server-key
+```
+
+The evaluation scripts are not affected: they always use the key and model from `.env` (or `--provider` / `--model`).
+
 ### 4. Choose the LLM: API or local
 
-Every script that calls an LLM (`app.py`, `gesetzpolyglot.rag`, `evaluation.eval_answers`) takes `--provider` and `--model`. They override `.env`.
+Every script that calls an LLM (`gesetzpolyglot.rag`, `evaluation.eval_answers`, and `app.py` with `--server-key`) takes `--provider` and `--model`. They override `.env`.
 
 | Provider | Runs | Model setting | Default |
 |---|---|---|---|
@@ -225,7 +233,7 @@ ollama pull qwen3:8b
 ```
 
 ```bash
-python app.py --provider ollama
+python app.py --server-key --provider ollama
 ```
 
 ```bash
@@ -233,11 +241,37 @@ python -m evaluation.eval_answers --split validation --provider ollama --model l
 ```
 
 ```bash
-python app.py --provider openai --model gpt-5.4
+python app.py --server-key --provider openai --model gpt-5.4
 ```
 
 For Ollama the code uses its native API rather than the OpenAI-compatible one, so it can set the context window (`OLLAMA_NUM_CTX`, default 16,384 tokens; Ollama's own default is a few thousand and silently cuts long prompts, here the answer rules) and switch off "thinking" for reasoning models such as qwen3. On a 16 GB Mac, 8B models fit next to the embedding model; expect tens of seconds per answer and a few minutes per agent question.
 
+
+## Sharing the app
+
+Both ways below are free for the operator: in the default mode every user brings their own API key, and the search runs on the CPU.
+
+**A temporary link from your own computer.** The link works while the app runs on your machine and expires after 72 hours; good for a demo or an interview.
+
+```bash
+python app.py --share
+```
+
+**A permanent page on Hugging Face Spaces (free CPU hardware).** [deploy/make_space.py](deploy/make_space.py) builds a self-contained folder: the app, the `gesetzpolyglot` package, the example questions, the search index (numpy store only, 55 MB in all) and the Space configuration with CPU-only requirements. It never copies `.env`, results or raw downloads, and stops if anything in the folder looks like an API key.
+
+```bash
+python deploy/make_space.py
+```
+
+Then create a Space (SDK: Gradio) on huggingface.co and upload the folder; `hf` comes with `huggingface_hub` and needs `hf auth login` once:
+
+```bash
+hf upload <user>/<space-name> dist/hf_space . --repo-type space
+```
+
+If the `hf` command is not found, run it as `python -m huggingface_hub.cli.hf` (same arguments).
+
+The first start downloads bge-m3 (about 2 GB) and takes a few minutes; a free Space sleeps when nobody uses it and wakes on the next visit. Do not add your own API key as a Space secret: the Space runs in the bring-your-own-key mode. Choose a licence for the code before publishing (there is none in the repository yet).
 
 ## Vector stores
 
@@ -311,7 +345,7 @@ Numpy and Chroma give almost the same recall (dense 0.354 vs 0.353; identical to
 
 ### Experiment: a multilingual concept graph
 
-The retrieval misses above are mostly vocabulary: people write "get my taxes back", "Anmeldung" or "I'm Portuguese", the statutes say *Veranlagung*, "Wer eine Wohnung bezieht …" and *Unionsbürger*. [concepts.py](gesetzpolyglot/concepts.py) is a small hand-written graph that bridges this: 40 concepts (Blue Card, registration, tax refund, health insurance, …), each with aliases in Korean, English, German, Arabic and Italian and the sections that answer it, plus four country groups taken from the statutes (EU/EEA/Switzerland, the states of AufenthV § 41 Abs. 1 and 2, the Western Balkans of BeschV § 26 Abs. 2). Some links are conditional: a spouse of an EU citizen brings in FreizügG/EU § 3, not the Residence Act's family reunification. [kg.py](gesetzpolyglot/kg.py) finds concepts and nationalities in the question (a country named as a destination, "travel to the Netherlands", or next to a relative, "my American spouse", is not taken as the asker's nationality) and fuses their sections with the normal ranking via RRF; a question without a known concept keeps its ranking.
+The retrieval misses above are mostly vocabulary: people write "get my taxes back", "Anmeldung" or "I'm Portuguese", the statutes say *Veranlagung*, "Wer eine Wohnung bezieht …" and *Unionsbürger*. [concepts.py](gesetzpolyglot/concepts.py) is a small hand-written graph that bridges this: 40 concepts at first (Blue Card, registration, tax refund, health insurance, …; 59 now, see below), each with aliases in Korean, English, German, Arabic and Italian and the sections that answer it, plus four country groups taken from the statutes (EU/EEA/Switzerland, the states of AufenthV § 41 Abs. 1 and 2, the Western Balkans of BeschV § 26 Abs. 2). Some links are conditional: a spouse of an EU citizen brings in FreizügG/EU § 3, not the Residence Act's family reunification. [kg.py](gesetzpolyglot/kg.py) finds concepts and nationalities in the question (a country named as a destination, "travel to the Netherlands", or next to a relative, "my American spouse", is not taken as the asker's nationality) and fuses their sections with the normal ranking via RRF; a question without a known concept keeps its ranking.
 
 ```bash
 python -m gesetzpolyglot.kg "저는 포르투갈 사람인데 독일 지사로 파견되면 어떤 체류허가가 필요한가요?"
@@ -331,6 +365,7 @@ python -m evaluation.eval_retrieval --modes dense dense+kg --evalset evalset/hel
 - **On new questions the graph helps a little: +0.07 (dense) to +0.12 (hybrid).** When a concept matches, it works: "a month in Germany without a visa" (0 → 1.00), "is a German degree better for permanent residence" (0 → 0.50).
 - **Coverage is the limit.** In the first 20, 12 questions matched no concept at all ("moving to another city", "months spent abroad", "PhD", "internship", "home-office deduction"), because people phrase things in more ways than hand-written aliases cover. One question got worse (a spouse joining a permanent resident: 1.00 → 0.50), because the graph's sections pushed out one that dense search had found.
 - **Three fixes found by reading one evalset question.** For the French worker's American spouse (n60) the graph used to take "American" for the asker's nationality, put the most specific section (FreizügG/EU § 3, family members of EU citizens) last, and keep AufenthG § 30 (family reunification for non-EU citizens) at the top, a law that does not apply. Now a country next to a relative does not count, the most specific sections come first, and a concept can name sections that no longer apply once a nationality group is known (`instead_of`): they are removed from the ranking. On evalset v2 this moved 0.792 to 0.818 (19 questions better, one worse: the Korean Blue-Card-without-degree question n27 lost BeschV § 26, now ranked after the concepts' sections); on the held-out questions nothing changed, because none of them names a relative's nationality. As the fixes came from an evalset question, only the held-out number counts.
+- **Nationality roles, and the held-out questions become dev data (2026-10-17).** The 40 held-out questions showed that a country name can mean three things: the asker's nationality, a family member's ("my spouse is Spanish", which brings EU family law along), or just a place ("worked in France", "a Swiss company", "work in the Netherlands"). The graph now tells these apart: a family member's EU citizenship counts for family law but a family member's privileged nationality gives the asker nothing, and places count for nobody. 19 concepts that the held-out questions missed were added (parents joining, married to a German, dual citizenship, asylum seekers working, Duldung, a pending extension, long absences, unemployment benefit and permanent residence, PhD, internships, the landlord's confirmation, name changes, remote work, business trips, athletes, Schengen travel, tax deductions, home office, side jobs, shares), for 59 concepts in all. On the held-out questions dense recall with the graph went from 0.302 to 0.775, and nothing changed on evalset v2 (0.818, no question better or worse). **0.775 is not an estimate**: the graph was fitted to these questions, which are dev data from now on; the clean numbers for them are the ones above (0.302 retrieval only, and the LLM run). A new set of questions, kept away from the graph, is needed to measure this version.
 - **The new questions are harder than evalset v2** (Korean dense 0.233 against 0.330), so the held-out set is also a useful check of the evaluation set itself.
 - **Indexing the titles of referenced sections did not help.** Adding the titles of the sections a chunk cites ("§ 25 Absatz 2" → "Aufenthalt aus humanitären Gründen", 4,418 chunks) changed evalset v2 from 0.353 to 0.357 (10 questions better, 9 worse) and on v1 lowered the refugee questions it was meant for (0.400 → 0.350). It stays an option (`retrieval.py build --ref-titles`), not the default.
 

@@ -1,5 +1,5 @@
 {
-  "created": "2026-10-15T13:24:02+0200",
+  "created": "2026-10-16T15:11:45+0200",
   "command": "/Users/eyun/Gelyglot/evaluation/ablation.py --name kg-llm-heldout40 --sets heldout --answers heldout --yes --force",
   "args": {
     "name": "kg-llm-heldout40",
@@ -26,8 +26,8 @@
     "force": true
   },
   "git": {
-    "commit": "3f402cae42eb39a6a1734842ebbb8f933e818e80",
-    "dirty": true
+    "commit": "f7090d0c1c4983b967afbb0489443fd79e303400",
+    "dirty": false
   },
   "prompt_version": "v4",
   "llm": {

@@ -5,7 +5,7 @@ chromadb>=1.5,<2       # optional vector store (python -m gesetzpolyglot.retriev
 sentence-transformers   # pulls torch; on Linux/Windows install CPU torch first (see README note)
 # LLM
 openai            # default provider; also works with Ollama / vLLM
-# anthropic       # only if LLM_PROVIDER=anthropic
+anthropic         # Claude: in the app with the user's key, or LLM_PROVIDER=anthropic
 # app
 gradio
 langgraph         # condition 4 (gesetzpolyglot/agent.py)

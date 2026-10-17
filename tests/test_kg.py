@@ -143,3 +143,19 @@ def test_manifest_accepts_lists_of_paths(tmp_path):
     from evaluation.manifest import write_manifest
     m = write_manifest(tmp_path / "m.json", args={"items": [Path("evalset/heldout/ko.jsonl")], "index": Path("x")})
     assert m["args"]["items"] == ["evalset/heldout/ko.jsonl"] and json.loads((tmp_path / "m.json").read_text())
+
+
+def test_nationality_roles():
+    g = ConceptGraph()
+    # an EU spouse brings EU family law along, although the asker is not an EU citizen
+    q = "저는 푸에토리코사람이고 제 배우자는 스페인 사람인데 둘이 같이 독일에 살 수 있는지"
+    assert g.nationalities(q) == ([], ["eu"]) and g.sections(q)[0] == ("FreizügG/EU", "3", "1")
+    # places of work, study or companies are nobody's nationality
+    assert g.nationalities("저는 모로코 사람인데 프랑스에서 일하다가 독일로 옮겨 구직을 하고싶은데")[0] == []
+    assert g.nationalities("프랑스에서 학위를 받은 일본인인데")[0] == ["privileged"]
+    assert g.nationalities("독일인이 아닌데 스위스회사에서 일하는데")[0] == []
+    assert g.nationalities("블루카드 소지자인데 네덜란드에서 이 비자로 일할수 있는지")[0] == []
+    # parents are relatives too; a relative's privileged nationality does not give the asker its privileges
+    q = "아이는 독일에서 태어났고 엄마는 덴마크 사람 아빠는 영국 사람인데"
+    asker, relative = g.nationalities(q)
+    assert asker == [] and "eu" in relative and ("AufenthV", "41", "1") not in g.sections(q)
