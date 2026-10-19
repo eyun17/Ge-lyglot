@@ -52,3 +52,35 @@ def test_default_models():
     from gesetzpolyglot.llm import USER_PROVIDERS
     assert USER_PROVIDERS == {"openai": "gpt-5.4-mini", "anthropic": "claude-haiku-5-5", "google": "gemini-2.5-flash"}
     assert make_llm("anthropic", "", "sk-ant-user").name == "claude-haiku-5-5"
+
+
+def test_zero_gpu_wiring(monkeypatch):
+    """On a ZeroGPU Space the question embedding must run inside @spaces.GPU and the model sit on cuda."""
+    import types
+    import app
+
+    seen = {}
+
+    def gpu(duration=60):
+        def wrap(fn):
+            seen["decorated"], seen["duration"] = fn.__name__, duration
+            return fn
+        return wrap
+    monkeypatch.setattr(app, "spaces", types.SimpleNamespace(GPU=gpu))
+
+    class Model:
+        def to(self, device):
+            seen["device"] = device
+
+    class Embedder:
+        m = Model()
+
+        def encode(self, texts):
+            return [len(t) for t in texts]
+
+    index = types.SimpleNamespace(embedder=Embedder())
+    assert app.use_zero_gpu(index) is True
+    assert seen == {"device": "cuda", "decorated": "gpu_encode", "duration": 15}
+    assert index.embedder.encode(["abc"]) == [3]                 # still the same embedding, now via the GPU function
+    monkeypatch.setattr(app, "spaces", None)
+    assert app.use_zero_gpu(types.SimpleNamespace(embedder=Embedder())) is False   # elsewhere: nothing changes

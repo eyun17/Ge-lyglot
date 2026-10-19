@@ -1,6 +1,8 @@
 # Ge(setz)🇩🇪(Po)lyglot 🤖
 Ask about German law in your own language, get answers grounded in the original German statute text.
 
+**Try it: [huggingface.co/spaces/eyun/gesetzpolyglot](https://huggingface.co/spaces/eyun/gesetzpolyglot)** (bring your own OpenAI, Claude or Gemini API key; see [Sharing the app](#sharing-the-app))
+
 Ge-lyglot, which is a short name of Gesetz-Polyglot, is a retrieval-augmented QA system for the German laws that matter most to foreigners living in Germany.
 Users ask in Korean, English, German, Italian or Arabic (Modern Standard or Syrian dialect); questions in other languages get a short note asking them to rephrase, without an LLM call. The system retrieves the German statute text, answers in the language of the question with citations, and checks that every citation points to a passage it actually retrieved.
 The project compares four retrieval conditions, several LLMs and four prompt versions on the same questions, to see which setup finds the legal basis for an answer most reliably and answers correctly. It is evaluated in Korean, English, German, Arabic (Modern Standard Arabic and Syrian dialect) and Italian.
@@ -257,7 +259,7 @@ Both ways below are free for the operator: in the default mode every user brings
 python app.py --share
 ```
 
-**A permanent page on Hugging Face Spaces (free CPU hardware).** [deploy/make_space.py](deploy/make_space.py) builds a self-contained folder: the app, the `gesetzpolyglot` package, the example questions, the search index (numpy store only, 55 MB in all) and the Space configuration with CPU-only requirements. It never copies `.env`, results or raw downloads, and stops if anything in the folder looks like an API key.
+**A permanent page on Hugging Face Spaces (free, on ZeroGPU).** The project's Space is [huggingface.co/spaces/eyun/gesetzpolyglot](https://huggingface.co/spaces/eyun/gesetzpolyglot). Free accounts can host Gradio Spaces only on ZeroGPU hardware (CPU Spaces need PRO); the app detects it and embeds questions on the GPU, which counts against each visitor's own daily ZeroGPU quota, not the operator's. [deploy/make_space.py](deploy/make_space.py) builds a self-contained folder: the app, the `gesetzpolyglot` package, the example questions, the search index (numpy store only, 55 MB in all) and the Space configuration (torch 2.13, the newest version ZeroGPU supports). It never copies `.env`, results or raw downloads, and stops if anything in the folder looks like an API key.
 
 ```bash
 python deploy/make_space.py

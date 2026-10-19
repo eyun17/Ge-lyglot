@@ -11,6 +11,13 @@ Needs data/index (python -m gesetzpolyglot.retrieval build) and an LLM (see gese
 """
 from __future__ import annotations
 
+# On a Hugging Face ZeroGPU Space, `spaces` must be imported before anything initialises CUDA (torch,
+# sentence-transformers); see use_zero_gpu(). The package exists only on Spaces; elsewhere this is None.
+try:
+    import spaces
+except ImportError:
+    spaces = None
+
 import argparse
 import html
 import json
@@ -338,6 +345,27 @@ def build_ui(answer_fn, examples: list[list[str]], sources_md: str = "", about_m
     return demo
 
 
+def use_zero_gpu(index) -> bool:
+    """On a Hugging Face ZeroGPU Space (free Gradio Spaces run only there), embed questions on the GPU.
+
+    ZeroGPU needs at least one @spaces.GPU function at startup and the model placed on "cuda" at startup; a real
+    GPU is attached only while such a function runs. Only the question embedding needs it (a fraction of a
+    second); the LLM calls go to the user's provider as usual. Elsewhere the `spaces` package is missing and
+    nothing changes."""
+    if spaces is None:
+        return False
+    embedder = index.embedder
+    embedder.m.to("cuda")
+    cpu_encode = embedder.encode
+
+    @spaces.GPU(duration=15)  # short: a question embeds in well under a second; short jobs queue first
+    def gpu_encode(texts: list[str]):
+        return cpu_encode(texts)
+
+    embedder.encode = gpu_encode
+    return True
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--index", default="data/index")
@@ -366,6 +394,8 @@ def main() -> None:
     print("loading index and embedding model ...")
     idx = LawIndex.load(Path(args.index))
     idx.embedder  # load bge-m3 now, not on the first question
+    if use_zero_gpu(idx):
+        print("ZeroGPU: question embeddings run on the GPU")
     from gesetzpolyglot.kg import ConceptGraph
     graph = ConceptGraph() if args.kg else None
     if args.server_key:

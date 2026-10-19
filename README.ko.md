@@ -2,6 +2,8 @@
 
 독일 법을 내 언어로 묻고, 독일어 원문 조문에 근거한 답을 받습니다.
 
+**써 보기: [huggingface.co/spaces/eyun/gesetzpolyglot](https://huggingface.co/spaces/eyun/gesetzpolyglot)** (OpenAI, Claude, Gemini 중 내 API 키 필요, [앱 공유하기](#앱-공유하기) 참고)
+
 Ge-lyglot(GesetzPolyglot의 줄임말)은 독일에 사는 외국인에게 중요한 독일 법령을 대상으로 하는 RAG 질의응답 시스템입니다.
 한국어, 영어, 독일어, 이탈리아어, 아랍어(표준어 또는 시리아 방언)로 물을 수 있고, 다른 언어로 물으면 LLM을 부르지 않고 지원 언어로 다시 물어 달라고 안내합니다. 질문하면 독일어 원문 조문을 찾아, 질문한 언어로 인용과 함께 답하고, 인용이 실제로 검색된 조문인지 검증합니다.
 같은 질문을 네 가지 검색 조건, 여러 LLM, 네 가지 프롬프트 버전으로 돌려, 어떤 조합이 답의 근거를 더 잘 찾고 올바르게 답하는지 비교하는 것이 목적입니다. 평가는 한국어, 영어, 독일어, 아랍어(표준어와 시리아 방언), 이탈리아어로 합니다.
@@ -243,7 +245,7 @@ Ollama는 OpenAI 호환 API가 아니라 자체 API로 연결합니다. 그래�
 python app.py --share
 ```
 
-**Hugging Face Spaces의 상시 페이지(무료 CPU).** [deploy/make_space.py](deploy/make_space.py)가 그대로 올릴 수 있는 폴더를 만듭니다. 앱, `gesetzpolyglot` 패키지, 예시 질문, 검색 인덱스(numpy 저장소만, 모두 55MB), CPU용 requirements가 든 Space 설정이 들어갑니다. `.env`, 결과 파일, 원본 다운로드는 절대 복사하지 않고, 폴더 안에 API 키처럼 보이는 것이 있으면 멈춥니다.
+**Hugging Face Spaces의 상시 페이지(무료, ZeroGPU).** 이 프로젝트의 Space는 [huggingface.co/spaces/eyun/gesetzpolyglot](https://huggingface.co/spaces/eyun/gesetzpolyglot)입니다. 무료 계정은 Gradio Space를 ZeroGPU 하드웨어로만 만들 수 있습니다(CPU Space는 PRO 필요). 앱이 이를 알아채고 질문 임베딩을 GPU에서 하며, 그 사용량은 운영자가 아니라 방문자 각자의 하루 ZeroGPU 한도에서 빠집니다. [deploy/make_space.py](deploy/make_space.py)가 그대로 올릴 수 있는 폴더를 만듭니다. 앱, `gesetzpolyglot` 패키지, 예시 질문, 검색 인덱스(numpy 저장소만, 모두 55MB), Space 설정(ZeroGPU가 지원하는 최신 torch 2.13)이 들어갑니다. `.env`, 결과 파일, 원본 다운로드는 절대 복사하지 않고, 폴더 안에 API 키처럼 보이는 것이 있으면 멈춥니다.
 
 ```bash
 python deploy/make_space.py

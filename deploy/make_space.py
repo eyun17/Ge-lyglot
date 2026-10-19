@@ -5,7 +5,8 @@
     hf upload <user>/<space-name> dist/hf_space . --repo-type space
 
 The Space runs app.py in its default mode: every user enters their own API key, so the operator pays nothing
-for LLM calls. Copied: app.py, the gesetzpolyglot package, the example questions and the search index (numpy store
+for LLM calls. Free accounts can host Gradio Spaces only on ZeroGPU hardware; app.py then embeds questions on the
+GPU (use_zero_gpu), which counts against the visitor's daily ZeroGPU quota, not the operator's. Copied: app.py, the gesetzpolyglot package, the example questions and the search index (numpy store
 only: 52 MB instead of 212 MB with Chroma, same results at this corpus size). Never copied: .env, results/,
 raw statute downloads, the evaluation code.
 """
@@ -25,9 +26,10 @@ colorFrom: yellow
 colorTo: red
 sdk: gradio
 sdk_version: {gradio}
+python_version: "3.12"
 app_file: app.py
 pinned: false
-short_description: Ask about German residence, work and tax law in your language
+short_description: German residence, work and tax law in your language
 ---
 
 # GesetzPolyglot
@@ -45,9 +47,10 @@ gesetze-im-internet.de (not the official version; only the Bundesgesetzblatt is 
 Code, evaluation and documentation: https://github.com/eyun17/Ge-lyglot
 """
 
-REQUIREMENTS = """# CPU-only torch keeps the Space small; Gradio itself is installed by the Space (sdk_version)
---extra-index-url https://download.pytorch.org/whl/cpu
-torch
+# Free Gradio Spaces run on ZeroGPU, which supports torch 2.8 to 2.13 (not newer) and Python 3.10 / 3.12.
+# Gradio itself is installed by the Space (sdk_version); `spaces` provides the @spaces.GPU decorator.
+REQUIREMENTS = """torch==2.13.0
+spaces
 numpy
 rank_bm25
 sentence-transformers
