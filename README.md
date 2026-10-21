@@ -103,6 +103,8 @@ results/                evaluation output (git-ignored)
 | [evalset/](evalset/) | Evaluation questions: 60 questions, the same in each of six language files; see [evalset/README.md](evalset/README.md) and [splits.json](evalset/splits.json). The first version is kept in `evalset/archive/v1/`. |
 | [review/](review/) | Translation review workbooks (.xlsx) for native speakers: German, Arabic (MSA), Syrian dialect, Italian. Built by [make_review.py](review/make_review.py), returned workbooks are applied with [apply_review.py](review/apply_review.py). |
 
+A step-by-step walkthrough of the code, in Korean, is in [docs/code-walkthrough.ko.md](docs/code-walkthrough.ko.md).
+
 Commands run from the project root as modules, e.g. `python -m gesetzpolyglot.retrieval build`; only the app is started with `python app.py`.
 
 ### The four conditions
@@ -210,7 +212,7 @@ python app.py
 
 The app runs at http://127.0.0.1:7860; `--share` creates a temporary public link.
 
-**Whose API key?** By default every user enters their own key in the app (OpenAI, Claude or Google Gemini) and pays for their own questions; the operator's keys are removed from the app's environment at start, so a request can never fall back to them. The key lives only in that browser session and is never stored, logged or shown. To answer with your own key from `.env` instead, for local tests or your own demos, start the app with `--server-key`:
+**Whose API key?** By default every user enters their own key in the app (OpenAI, Claude or Google Gemini) and pays for their own questions; the operator's keys are removed from the app's environment at start, so a request can never fall back to them. The key lives only in that browser session and is never stored, logged or shown. When the app runs on a computer with [Ollama](https://ollama.com) running, it also offers **Local model (Ollama, no key)** with the installed models: free, but much slower and less reliable (an 8B model got 37 of 80 answer types right, against 79 for gpt-5.4-mini). It is never offered on a Hugging Face Space, which cannot reach a visitor's computer. To answer with your own key from `.env` instead, for local tests or your own demos, start the app with `--server-key`:
 
 ```bash
 python app.py --server-key

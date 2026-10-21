@@ -21,6 +21,7 @@ except ImportError:
 import argparse
 import html
 import json
+import os
 import re
 from pathlib import Path
 
@@ -267,16 +268,25 @@ KEY_NOTE_DE = ("Verwenden Sie Ihren eigenen API-Schlüssel. Er wird nur für Ihr
                "Anbieter; die Kosten tragen Sie. Ausgewertet wurde mit gpt-5.4-mini.")
 
 
+LOCAL_NOTE_EN = ("**Local model:** runs on this computer through Ollama, free and without a key, but much slower "
+                 "(tens of seconds per answer, minutes with the agent) and less reliable: an 8B model got 37 of 80 "
+                 "answer types right in the evaluation, against 79 for gpt-5.4-mini.")
+LOCAL_NOTE_DE = ("Lokales Modell über Ollama: kostenlos und ohne Schlüssel, aber deutlich langsamer und weniger "
+                 "zuverlässig.")
+
+
 def build_ui(answer_fn, examples: list[list[str]], sources_md: str = "", about_md: str = "",
-             byok: bool = False) -> gr.Blocks:
-    """byok: the user enters provider, model and API key; answer_fn then gets them as a dict."""
-    from gesetzpolyglot.llm import PROVIDER_LABELS, USER_PROVIDERS, explain_error
+             byok: bool = False, local_models: list[str] = ()) -> gr.Blocks:
+    """byok: the user enters provider, model and API key; answer_fn then gets them as a dict.
+    local_models: models of a running Ollama on this computer; if any, a key-free local option is offered."""
+    from gesetzpolyglot.llm import LOCAL_PROVIDER, PROVIDER_LABELS, USER_PROVIDERS, explain_error
+    defaults = {**USER_PROVIDERS, **({LOCAL_PROVIDER: local_models[0]} if local_models else {})}
 
     def run(question: str, condition_label: str, provider: str = "", model: str = "", key: str = ""):
         question = (question or "").strip()
         if not question:
             return bi("Please enter a question.", "Bitte geben Sie eine Frage ein."), "", "", {}
-        if byok and not (key or "").strip():
+        if byok and provider != LOCAL_PROVIDER and not (key or "").strip():
             return bi("Please enter your API key above.", "Bitte geben Sie oben Ihren API-Schlüssel ein."), "", "", {}
         condition = next(k for k, v in CONDITION_LABELS.items() if v == condition_label)
         try:
@@ -284,6 +294,8 @@ def build_ui(answer_fn, examples: list[list[str]], sources_md: str = "", about_m
             return render(answer_fn(question, condition, creds) if byok else answer_fn(question, condition))
         except Exception as e:  # show errors in the UI instead of a blank box; never echo the key
             return bi(f"❌ {explain_error(e, key)}", "Ein Fehler ist aufgetreten."), "", "", {}
+        except SystemExit as e:  # the Ollama client stops with a readable message (not running, model missing)
+            return bi(f"❌ {e}", "Ein Fehler ist aufgetreten."), "", "", {}
 
     with gr.Blocks(title="Gelyglot") as demo:
         gr.Markdown(
@@ -309,13 +321,17 @@ def build_ui(answer_fn, examples: list[list[str]], sources_md: str = "", about_m
         if byok:
             with gr.Accordion("🔑 Your API key / Ihr API-Schlüssel", open=True):
                 gr.Markdown(bi(KEY_NOTE_EN, KEY_NOTE_DE))
+                if local_models:
+                    gr.Markdown(bi(LOCAL_NOTE_EN, LOCAL_NOTE_DE))
                 with gr.Row():
-                    provider = gr.Dropdown([(PROVIDER_LABELS[p], p) for p in USER_PROVIDERS], value="openai",
+                    provider = gr.Dropdown([(PROVIDER_LABELS[p], p) for p in defaults], value="openai",
                                            label="Provider", info="Anbieter")
                     model = gr.Textbox(value=USER_PROVIDERS["openai"], label="Model",
-                                       info="Modell (default shown; any model of this provider)")
-                    key = gr.Textbox(type="password", label="API key", info="API-Schlüssel")
-                provider.change(lambda p: USER_PROVIDERS.get(p, ""), provider, model)
+                                       info="Modell (default shown; any model of this provider)"
+                                            + (f"; installed locally: {', '.join(local_models)}" if local_models else ""))
+                    key = gr.Textbox(type="password", label="API key (not needed for a local model)",
+                                     info="API-Schlüssel")
+                provider.change(lambda p: defaults.get(p, ""), provider, model)
             key_inputs = [provider, model, key]
         with gr.Row():
             with gr.Column(scale=3):
@@ -382,7 +398,6 @@ def main() -> None:
     if args.server_key:
         apply_llm_args(args)
     else:  # public mode: make sure no request can fall back to the operator's key
-        import os
         from gesetzpolyglot.llm import KEY_ENV_VARS
         for var in KEY_ENV_VARS:
             os.environ.pop(var, None)
@@ -403,7 +418,12 @@ def main() -> None:
         print(f"ready: {len(idx.chunks)} chunks, vector store {idx.store.name}, operator's model {rag._PIPELINE.llm.name}")
         answer_fn = lambda qq, c: rag.answer(qq, c, args.index)  # noqa: E731
     else:
-        from gesetzpolyglot.llm import make_llm
+        from gesetzpolyglot.llm import local_models, make_llm
+        # a local model only makes sense when the app runs on the computer with Ollama, not on a Hugging Face Space
+        on_space = bool(os.environ.get("SPACE_ID"))
+        local = [] if on_space else local_models()
+        if local:
+            print(f"local models offered (Ollama): {', '.join(local)}")
 
         def answer_fn(qq, c, creds):  # one LLM client per request, with the user's key; the index is shared
             llm = make_llm(creds["provider"], creds["model"], creds["api_key"])
@@ -411,7 +431,8 @@ def main() -> None:
         print(f"ready: {len(idx.chunks)} chunks, vector store {idx.store.name}; users bring their own API key")
 
     demo = build_ui(answer_fn, load_examples(Path(args.evalset)), source_table(idx.chunks),
-                    how_built(len(idx.chunks), kg_on=args.kg), byok=not args.server_key)
+                    how_built(len(idx.chunks), kg_on=args.kg), byok=not args.server_key,
+                    local_models=[] if args.server_key else local)
     demo.launch(share=args.share, server_port=args.port)
 
 

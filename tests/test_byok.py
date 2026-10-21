@@ -27,7 +27,7 @@ def test_user_key_wins_over_environment(monkeypatch):
 
 def test_unknown_provider():
     with pytest.raises(ValueError):
-        make_llm("ollama", "llama3", "x")
+        make_llm("mistral", "mistral-large", "x")
 
 
 def test_errors_never_echo_the_key():
@@ -84,3 +84,27 @@ def test_zero_gpu_wiring(monkeypatch):
     assert index.embedder.encode(["abc"]) == [3]                 # still the same embedding, now via the GPU function
     monkeypatch.setattr(app, "spaces", None)
     assert app.use_zero_gpu(types.SimpleNamespace(embedder=Embedder())) is False   # elsewhere: nothing changes
+
+
+def test_local_model_needs_no_key_and_is_offered_only_locally(monkeypatch):
+    import app
+    from gesetzpolyglot.llm import OllamaLLM
+    m = make_llm("ollama", "llama3:latest", "")
+    assert isinstance(m, OllamaLLM) and m.name == "llama3:latest"
+    with pytest.raises(ValueError):
+        make_llm("ollama", "", "")
+    calls = []
+    demo = app.build_ui(lambda *a: calls.append(a), [["x"]], "", "x", byok=True, local_models=["llama3:latest"])
+    run = next(f.fn for f in demo.fns.values() if getattr(f.fn, "__name__", "") == "run")
+    run("Can students work?", app.CONDITION_LABELS["dense"], "ollama", "llama3:latest", "")   # no key needed
+    assert calls and calls[0][2]["provider"] == "ollama"
+    out = run("Can students work?", app.CONDITION_LABELS["dense"], "openai", "gpt-5.4-mini", "")
+    assert "API key" in out[0] and len(calls) == 1                # cloud providers still need a key
+
+
+def test_local_models_sorted_and_empty_without_ollama(monkeypatch):
+    from gesetzpolyglot import llm
+    monkeypatch.setattr(llm.OllamaLLM, "installed", lambda self: ["gemma3:latest", "llama3:latest"])
+    assert llm.local_models() == ["llama3:latest", "gemma3:latest"]   # a preferred model first
+    monkeypatch.setattr(llm.OllamaLLM, "installed", lambda self: [])
+    assert llm.local_models() == []

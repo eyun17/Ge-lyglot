@@ -89,6 +89,8 @@ results/                평가 결과 (git 제외)
 | [evalset/](evalset/) | 평가 질문입니다. 같은 60문항이 여섯 개 언어 파일에 하나씩 들어 있습니다. [evalset/README.md](evalset/README.md)와 [splits.json](evalset/splits.json) 참고. 첫 버전은 `evalset/archive/v1/`에 보관합니다. |
 | [review/](review/) | 원어민 번역 검토용 엑셀 파일(독일어, 아랍어 표준어, 시리아 방언, 이탈리아어)입니다. [make_review.py](review/make_review.py)로 만들고, 돌려받은 파일은 [apply_review.py](review/apply_review.py)로 반영합니다. |
 
+코드를 처음부터 차례로 설명한 문서는 [docs/code-walkthrough.ko.md](docs/code-walkthrough.ko.md)에 있습니다.
+
 명령은 프로젝트 루트에서 모듈로 실행합니다(예: `python -m gesetzpolyglot.retrieval build`). 앱만 `python app.py`로 시작합니다.
 
 ### 비교하는 네 가지 조건
@@ -196,7 +198,7 @@ python app.py
 
 앱은 http://127.0.0.1:7860 에서 열립니다. `--share`를 붙이면 임시 공개 링크가 생깁니다.
 
-**누구의 API 키를 쓰나?** 기본으로는 사용자마다 앱에 자기 키(OpenAI, Claude, Google Gemini)를 입력하고, 자기 질문의 비용을 냅니다. 앱은 시작할 때 운영자의 키를 환경변수에서 지우기 때문에, 요청이 운영자 키로 넘어갈 수 없습니다. 키는 그 브라우저 세션에만 있고, 저장되거나 기록되거나 화면에 나오지 않습니다. 로컬 테스트나 직접 시연할 때처럼 `.env`의 내 키로 답하게 하려면 `--server-key`를 붙여 실행합니다.
+**누구의 API 키를 쓰나?** 기본으로는 사용자마다 앱에 자기 키(OpenAI, Claude, Google Gemini)를 입력하고, 자기 질문의 비용을 냅니다. 앱은 시작할 때 운영자의 키를 환경변수에서 지우기 때문에, 요청이 운영자 키로 넘어갈 수 없습니다. 키는 그 브라우저 세션에만 있고, 저장되거나 기록되거나 화면에 나오지 않습니다. [Ollama](https://ollama.com)가 켜진 컴퓨터에서 앱을 실행하면 **Local model (Ollama, no key)**도 선택할 수 있고, 설치된 모델이 자동으로 나옵니다. 무료지만 훨씬 느리고 덜 정확합니다(8B 모델은 응답 유형 80개 중 37개, gpt-5.4-mini는 79개). Hugging Face Space에서는 방문자 컴퓨터에 접근할 수 없으므로 이 선택지를 보여 주지 않습니다. 로컬 테스트나 직접 시연할 때처럼 `.env`의 내 키로 답하게 하려면 `--server-key`를 붙여 실행합니다.
 
 ```bash
 python app.py --server-key

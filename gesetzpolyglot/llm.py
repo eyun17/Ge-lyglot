@@ -213,14 +213,30 @@ class OllamaLLM:
 # Gemini models are reached through Google's OpenAI-compatible endpoint, so no extra SDK is needed.
 # Ollama is not offered: a server cannot reach a model on the user's machine.
 USER_PROVIDERS = {"openai": "gpt-5.4-mini", "anthropic": "claude-haiku-5-5", "google": "gemini-2.5-flash"}
-PROVIDER_LABELS = {"openai": "OpenAI", "anthropic": "Claude (Anthropic)", "google": "Google Gemini"}
+PROVIDER_LABELS = {"openai": "OpenAI", "anthropic": "Claude (Anthropic)", "google": "Google Gemini",
+                   "ollama": "Local model (Ollama, no key)"}
+# A local model works only when the app runs on the same computer as Ollama, so the app offers it only then.
+LOCAL_PROVIDER = "ollama"
+PREFERRED_LOCAL_MODELS = ("qwen3:8b", "llama3:8b", "llama3:latest")
 GOOGLE_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 KEY_ENV_VARS = ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY")
 
 
+def local_models() -> list[str]:
+    """Models installed in a running Ollama on this computer (empty if Ollama is not running), best first."""
+    url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+    installed = OllamaLLM("", url).installed()
+    return sorted(installed, key=lambda m: (m not in PREFERRED_LOCAL_MODELS, installed.index(m)))
+
+
 def make_llm(provider: str, model: str, api_key: str) -> LLM:
     """An LLM client for exactly this key. Never falls back to a key in the environment: an empty key is an
-    error, so the public app cannot spend the operator's credit by accident."""
+    error, so the public app cannot spend the operator's credit by accident. A local Ollama model needs no key."""
+    if provider == LOCAL_PROVIDER:
+        if not (model or "").strip():
+            raise ValueError("no model given")
+        return OllamaLLM(model.strip(), os.environ.get("OLLAMA_URL", "http://localhost:11434"),
+                         int(os.environ.get("OLLAMA_NUM_CTX", "16384")))
     api_key = (api_key or "").strip()
     if not api_key:
         raise ValueError("no API key given")
